@@ -1,0 +1,39 @@
+---
+name: Ubuntu 22.04
+
+on:
+  push:
+    branches: [main, master, dev]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build:
+    name: "Ubuntu 22.04 (Qt 5.15)"
+    runs-on: [self-hosted, ubuntu-22.04]
+
+    steps:
+      # NOTE: Dependencies are already installed on the dev runner
+      # - name: update apt
+      #   run: sudo apt-get update
+
+      # - name: install dependencies
+      #   run: |
+      #     sudo apt-get install -y git cmake build-essential ccache \
+      #     qtbase5-dev libqt5sql5-sqlite libgl1-mesa-dev
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build Release
+        run: make release
+
+      - name: Test
+        run: make test
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nutra-ubuntu-22.04
+          path: build/nutra

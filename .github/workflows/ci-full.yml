@@ -1,0 +1,40 @@
+name: Full CI
+
+on:
+  push:
+    branches: [main, master, dev]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  full-check:
+    name: Full CI Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git cmake build-essential ccache \
+          qtbase5-dev libqt5sql5-sqlite libgl1-mesa-dev \
+          clang-format cppcheck clang-tidy
+
+      - name: Check Formatting
+        run: |
+          make format
+          git diff
+          git diff --stat
+          git diff --quiet --exit-code
+
+      - name: Lint
+        run: make lint
+
+      - name: Build Release
+        run: make release
+
+      - name: Test
+        run: make test

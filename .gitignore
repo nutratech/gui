@@ -1,0 +1,10 @@
+# macOS/backup files
+.~*
+._*
+~$*
+.DS_Store
+*.swp
+
+# C++ stuff
+build/
+

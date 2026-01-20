@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Nutra
+Comment=Nutrition Tracker and USDA Database
+Exec=nutra
+Icon=nutra
+Terminal=false
+Type=Application
+Categories=Utility;Database;Health;
+StartupNotify=true
+Keywords=nutrition;food;tracker;usda;diet;

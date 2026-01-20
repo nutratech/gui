@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>resources/nutrition_icon-no_bg.png</file>
+    </qresource>
+
+</RCC>

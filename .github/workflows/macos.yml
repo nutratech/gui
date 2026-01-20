@@ -1,0 +1,35 @@
+name: macOS
+
+on:
+  push:
+    branches: [main, master, dev]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build:
+    name: Build
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: "6.5.0"
+          host: "mac"
+
+      - name: Build Release
+        run: make release
+
+      - name: Test
+        run: make test
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nutra-macos
+          path: build/nutra.app
