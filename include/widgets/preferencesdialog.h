@@ -15,7 +15,7 @@ public:
 private:
     void setupUi();
     void loadStatistics();
-    QString formatBytes(qint64 bytes) const;
+    [[nodiscard]] QString formatBytes(qint64 bytes) const;
 
     QTabWidget* tabWidget;
 

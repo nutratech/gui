@@ -99,7 +99,7 @@ void PreferencesDialog::loadStatistics() {
     QDir recipeDir(recipePath);
     int recipeCount = 0;
     if (recipeDir.exists()) {
-        recipeCount = recipeDir.entryList(QDir::Files).count();
+        recipeCount = static_cast<int>(recipeDir.entryList(QDir::Files).count());
     }
     lblRecipes->setText(QString::number(recipeCount));
 
@@ -110,7 +110,7 @@ void PreferencesDialog::loadStatistics() {
     qint64 totalBackupSize = 0;
     if (backupDir.exists()) {
         QFileInfoList files = backupDir.entryInfoList({"*.sql.gz"}, QDir::Files);
-        snapshotCount = files.count();
+        snapshotCount = static_cast<int>(files.count());
         for (const auto& fi : files) {
             totalBackupSize += fi.size();
         }
@@ -131,9 +131,11 @@ void PreferencesDialog::loadStatistics() {
 }
 
 QString PreferencesDialog::formatBytes(qint64 bytes) const {
-    if (bytes < 1024) return QString("%1 B").arg(bytes);
-    if (bytes < 1024 * 1024) return QString("%1 KB").arg(bytes / 1024.0, 0, 'f', 1);
-    if (bytes < 1024 * 1024 * 1024)
-        return QString("%1 MB").arg(bytes / (1024.0 * 1024.0), 0, 'f', 2);
-    return QString("%1 GB").arg(bytes / (1024.0 * 1024.0 * 1024.0), 0, 'f', 2);
+    constexpr qint64 KB = 1024LL;
+    constexpr qint64 MB = 1024LL * 1024LL;
+    constexpr qint64 GB = 1024LL * 1024LL * 1024LL;
+    if (bytes < KB) return QString("%1 B").arg(bytes);
+    if (bytes < MB) return QString("%1 KB").arg(static_cast<double>(bytes) / KB, 0, 'f', 1);
+    if (bytes < GB) return QString("%1 MB").arg(static_cast<double>(bytes) / MB, 0, 'f', 2);
+    return QString("%1 GB").arg(static_cast<double>(bytes) / GB, 0, 'f', 2);
 }

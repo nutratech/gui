@@ -60,18 +60,25 @@ void MainWindow::setupUi() {
 
     // Help Menu
     auto* helpMenu = menuBar()->addMenu("&Help");
+
+    auto* licenseAction = helpMenu->addAction("&License");
+    connect(licenseAction, &QAction::triggered, this, [this]() {
+        QMessageBox::information(
+            this, "License",
+            "<h3>GNU General Public License v3.0</h3>"
+            "<p>This program is free software: you can redistribute it and/or modify "
+            "it under the terms of the GNU General Public License as published by "
+            "the Free Software Foundation, either version 3 of the License, or "
+            "(at your option) any later version.</p>"
+            "<p>This program is distributed in the hope that it will be useful, "
+            "but WITHOUT ANY WARRANTY; without even the implied warranty of "
+            "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.</p>"
+            "<p>See <a href=\"https://www.gnu.org/licenses/gpl-3.0.html\">"
+            "https://www.gnu.org/licenses/gpl-3.0.html</a> for details.</p>");
+    });
+
     auto* aboutAction = helpMenu->addAction("&About");
     connect(aboutAction, &QAction::triggered, this, &MainWindow::onAbout);
-
-    auto* infoAction = helpMenu->addAction("&Info");
-    connect(infoAction, &QAction::triggered, this, [this]() {
-        QMessageBox::information(
-            this, "Philosophy",
-            "It's a free app designed not as a weight-loss app but a true nutrition "
-            "coach, giving insights into what you're getting and what you're lacking, "
-            "empowering you to make more informed and healthy decisions and live more "
-            "of the vibrant life you were put here for.");
-    });
 
     auto* centralWidget = new QWidget(this);
     setCentralWidget(centralWidget);
@@ -238,7 +245,11 @@ void MainWindow::onSettings() {
 void MainWindow::onAbout() {
     QMessageBox::about(this, "About Nutrient Coach",
                        QString("<h3>Nutrient Coach %1</h3>"
-                               "<p>A C++/Qt application for tracking nutrition.</p>"
+                               "<p>This application is a tool designed not as a weight-loss app "
+                               "but as a true <b>nutrition coach</b>, giving insights into what "
+                               "you're getting and what you're lacking, empowering you to make "
+                               "more informed and healthy decisions and live more of the vibrant "
+                               "life you were put here for.</p>"
                                "<p>Homepage: <a "
                                "href=\"https://github.com/nutratech/gui\">https://github.com/"
                                "nutratech/gui</a></p>")
