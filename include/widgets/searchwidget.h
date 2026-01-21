@@ -1,34 +1,35 @@
 #ifndef SEARCHWIDGET_H
 #define SEARCHWIDGET_H
 
-#include "db/foodrepository.h"
 #include <QLineEdit>
 #include <QPushButton>
 #include <QTableWidget>
 #include <QTimer>
 #include <QWidget>
 
+#include "db/foodrepository.h"
+
 class SearchWidget : public QWidget {
-  Q_OBJECT
+    Q_OBJECT
 
 public:
-  explicit SearchWidget(QWidget *parent = nullptr);
+    explicit SearchWidget(QWidget* parent = nullptr);
 
 signals:
-  void foodSelected(int foodId, const QString &foodName);
-  void addToMealRequested(int foodId, const QString &foodName, double grams);
+    void foodSelected(int foodId, const QString& foodName);
+    void addToMealRequested(int foodId, const QString& foodName, double grams);
 
 private slots:
-  void performSearch();
-  void onRowDoubleClicked(int row, int column);
-  void onCustomContextMenu(const QPoint &pos);
+    void performSearch();
+    void onRowDoubleClicked(int row, int column);
+    void onCustomContextMenu(const QPoint& pos);
 
 private:
-  QLineEdit *searchInput;
-  QPushButton *searchButton;
-  QTableWidget *resultsTable;
-  FoodRepository repository;
-  QTimer *searchTimer;
+    QLineEdit* searchInput;
+    QPushButton* searchButton;
+    QTableWidget* resultsTable;
+    FoodRepository repository;
+    QTimer* searchTimer;
 };
 
-#endif // SEARCHWIDGET_H
+#endif  // SEARCHWIDGET_H

@@ -1,39 +1,40 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include "widgets/detailswidget.h"
-#include "widgets/mealwidget.h"
-#include "widgets/searchwidget.h"
 #include <QMainWindow>
 #include <QTabWidget>
 
+#include "widgets/detailswidget.h"
+#include "widgets/mealwidget.h"
+#include "widgets/searchwidget.h"
+
 class MainWindow : public QMainWindow {
-  Q_OBJECT
+    Q_OBJECT
 
 public:
-  MainWindow(QWidget *parent = nullptr);
-  ~MainWindow() override;
+    MainWindow(QWidget* parent = nullptr);
+    ~MainWindow() override;
 
 private slots:
-  void onOpenDatabase();
-  void onRecentFileClick();
-  void onSettings();
-  void onAbout();
+    void onOpenDatabase();
+    void onRecentFileClick();
+    void onSettings();
+    void onAbout();
 
 private:
-  void setupUi();
-  void updateRecentFileActions();
-  void addToRecentFiles(const QString &path);
+    void setupUi();
+    void updateRecentFileActions();
+    void addToRecentFiles(const QString& path);
 
-  QTabWidget *tabs;
-  SearchWidget *searchWidget;
-  DetailsWidget *detailsWidget;
-  MealWidget *mealWidget;
-  FoodRepository repository;
+    QTabWidget* tabs;
+    SearchWidget* searchWidget;
+    DetailsWidget* detailsWidget;
+    MealWidget* mealWidget;
+    FoodRepository repository;
 
-  QMenu *recentFilesMenu;
-  static constexpr int MaxRecentFiles = 5;
-  QAction *recentFileActions[MaxRecentFiles];
+    QMenu* recentFilesMenu;
+    static constexpr int MaxRecentFiles = 5;
+    QAction* recentFileActions[MaxRecentFiles];
 };
 
-#endif // MAINWINDOW_H
+#endif  // MAINWINDOW_H

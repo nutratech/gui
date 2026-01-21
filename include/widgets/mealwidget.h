@@ -1,40 +1,44 @@
 #ifndef MEALWIDGET_H
 #define MEALWIDGET_H
 
-#include "db/foodrepository.h"
 #include <QPushButton>
 #include <QTableWidget>
 #include <QWidget>
-#include <map>
 #include <vector>
 
+#include "db/foodrepository.h"
+#include "db/mealrepository.h"
+
 struct MealItem {
-  int foodId;
-  QString name;
-  double grams;
-  std::vector<Nutrient> nutrients_100g; // Base nutrients
+    int foodId;
+    QString name;
+    double grams;
+    std::vector<Nutrient> nutrients_100g;
 };
 
 class MealWidget : public QWidget {
-  Q_OBJECT
+    Q_OBJECT
 
 public:
-  explicit MealWidget(QWidget *parent = nullptr);
+    explicit MealWidget(QWidget* parent = nullptr);
 
-  void addFood(int foodId, const QString &foodName, double grams);
+    void addFood(int foodId, const QString& foodName, double grams);
 
 private slots:
-  void clearMeal();
+    void clearMeal();
 
 private:
-  void updateTotals();
+    void updateTotals();
+    void refresh();
 
-  QTableWidget *itemsTable;
-  QTableWidget *totalsTable;
-  QPushButton *clearButton;
+    QTableWidget* itemsTable;
+    QPushButton* clearButton;
+    QTableWidget* totalsTable;
 
-  std::vector<MealItem> mealItems;
-  FoodRepository repository;
+    FoodRepository repository;
+    MealRepository m_mealRepo;
+
+    std::vector<MealItem> mealItems;
 };
 
-#endif // MEALWIDGET_H
+#endif  // MEALWIDGET_H
