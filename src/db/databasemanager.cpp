@@ -73,7 +73,9 @@ QSqlDatabase DatabaseManager::userDatabase() const {
 }
 
 void DatabaseManager::initUserDatabase() {
-    QString path = QDir::homePath() + "/.nutra/nt.sqlite3";
+    QString dirPath = QDir::homePath() + "/.nutra";
+    QDir().mkpath(dirPath);
+    QString path = dirPath + "/nt.sqlite3";
     m_userDb.setDatabaseName(path);
 
     if (!m_userDb.open()) {
