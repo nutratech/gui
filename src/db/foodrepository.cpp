@@ -248,9 +248,11 @@ void FoodRepository::updateRda(int nutrId, double value) {
     if (!userDb.isOpen()) return;
 
     QSqlQuery query(userDb);
-    query.prepare(
-        "INSERT OR REPLACE INTO rda (profile_id, nutr_id, rda) "
-        "VALUES (1, ?, ?)");
+    if (!query.prepare("INSERT OR REPLACE INTO rda (profile_id, nutr_id, rda) "
+                       "VALUES (1, ?, ?)")) {
+        qCritical() << "Failed to prepare RDA update:" << query.lastError().text();
+        return;
+    }
     query.bindValue(0, nutrId);
     query.bindValue(1, value);
 

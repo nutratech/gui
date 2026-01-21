@@ -13,11 +13,9 @@ set(CMAKE_AUTOUIC ON)
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Sql)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Sql)
 
-file(GLOB_RECURSE PROJECT_SOURCES 
-    "src/*.cpp" 
-    "include/*.h"
-    "resources.qrc"
-)
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
+file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "include/*.h")
+set(PROJECT_SOURCES ${SOURCES} ${HEADERS} "resources.qrc")
 
 # Versioning
 if(NOT NUTRA_VERSION)

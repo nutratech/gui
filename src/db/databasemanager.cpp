@@ -20,6 +20,9 @@ DatabaseManager::~DatabaseManager() {
     if (m_db.isOpen()) {
         m_db.close();
     }
+    if (m_userDb.isOpen()) {
+        m_userDb.close();
+    }
 }
 
 bool DatabaseManager::isValidNutraDatabase(const QSqlDatabase& db) {
