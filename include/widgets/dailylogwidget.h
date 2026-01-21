@@ -2,6 +2,10 @@
 #define DAILYLOGWIDGET_H
 
 #include <QDate>
+#include <QGroupBox>
+#include <QProgressBar>
+#include <QPushButton>
+#include <QSpinBox>
 #include <QTableWidget>
 #include <QVBoxLayout>
 #include <QWidget>
@@ -23,8 +27,22 @@ private:
     void updateTable();
 
     QTableWidget* logTable;
+
+    // Analysis UI
+    QGroupBox* analysisBox;
+    QVBoxLayout* analysisLayout;
+    QProgressBar* kcalBar;
+    QProgressBar* proteinBar;
+    QProgressBar* carbsBar;
+    QProgressBar* fatBar;
+    QSpinBox* scaleInput;
+
     MealRepository m_mealRepo;
     FoodRepository m_foodRepo;
+
+    void updateAnalysis();
+    void createProgressBar(QVBoxLayout* layout, const QString& label, QProgressBar*& bar,
+                           const QString& color);
 };
 
 #endif  // DAILYLOGWIDGET_H
