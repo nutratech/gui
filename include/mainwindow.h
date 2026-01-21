@@ -29,6 +29,7 @@ private:
   SearchWidget *searchWidget;
   DetailsWidget *detailsWidget;
   MealWidget *mealWidget;
+  FoodRepository repository;
 
   QMenu *recentFilesMenu;
   static constexpr int MaxRecentFiles = 5;

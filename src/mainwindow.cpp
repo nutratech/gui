@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "db/databasemanager.h"
+#include "widgets/rdasettingswidget.h"
 #include <QAction>
 #include <QDebug>
 #include <QFileDialog>
@@ -42,8 +43,14 @@ void MainWindow::setupUi() {
     recentFilesMenu->addAction(recentFileActions[i]);
 
   // Edit Menu
-  auto *editMenu = menuBar()->addMenu("&Edit");
-  auto *settingsAction = editMenu->addAction("&Settings");
+  QMenu *editMenu = menuBar()->addMenu("Edit");
+  QAction *rdaAction = editMenu->addAction("RDA Settings");
+  connect(rdaAction, &QAction::triggered, this, [this]() {
+    RDASettingsWidget dlg(repository, this);
+    dlg.exec();
+  });
+
+  QAction *settingsAction = editMenu->addAction("Settings");
   connect(settingsAction, &QAction::triggered, this, &MainWindow::onSettings);
 
   // Help Menu

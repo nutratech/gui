@@ -11,6 +11,7 @@ public:
   bool connect(const QString &path);
   [[nodiscard]] bool isOpen() const;
   [[nodiscard]] QSqlDatabase database() const;
+  [[nodiscard]] QSqlDatabase userDatabase() const;
 
   DatabaseManager(const DatabaseManager &) = delete;
   DatabaseManager &operator=(const DatabaseManager &) = delete;
@@ -19,7 +20,10 @@ private:
   DatabaseManager();
   ~DatabaseManager();
 
+  void initUserDatabase();
+
   QSqlDatabase m_db;
+  QSqlDatabase m_userDb;
 };
 
 #endif // DATABASEMANAGER_H

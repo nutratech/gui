@@ -1,8 +1,8 @@
 #include "widgets/searchwidget.h"
+#include "widgets/weightinputdialog.h"
 #include <QAction>
 #include <QHBoxLayout>
 #include <QHeaderView>
-#include <QInputDialog>
 #include <QMenu>
 #include <QMessageBox>
 #include <QVBoxLayout>
@@ -68,8 +68,7 @@ void SearchWidget::performSearch() {
     const auto &item = results[i];
     resultsTable->setItem(i, 0, new QTableWidgetItem(QString::number(item.id)));
     resultsTable->setItem(i, 1, new QTableWidgetItem(item.description));
-    resultsTable->setItem(
-        i, 2, new QTableWidgetItem(QString::number(item.foodGroupId)));
+    resultsTable->setItem(i, 2, new QTableWidgetItem(item.foodGroupName));
     resultsTable->setItem(
         i, 3, new QTableWidgetItem(QString::number(item.nutrientCount)));
     resultsTable->setItem(
@@ -116,11 +115,10 @@ void SearchWidget::onCustomContextMenu(const QPoint &pos) {
   if (selectedAction == analyzeAction) {
     emit foodSelected(foodId, foodName);
   } else if (selectedAction == addToMealAction) {
-    bool ok;
-    double grams = QInputDialog::getDouble(
-        this, "Add to Meal", "Amount (grams):", 100.0, 0.1, 10000.0, 1, &ok);
-    if (ok) {
-      emit addToMealRequested(foodId, foodName, grams);
+    std::vector<ServingWeight> servings = repository.getFoodServings(foodId);
+    WeightInputDialog dlg(foodName, servings, this);
+    if (dlg.exec() == QDialog::Accepted) {
+      emit addToMealRequested(foodId, foodName, dlg.getGrams());
     }
   }
 }

@@ -13,23 +13,10 @@ set(CMAKE_AUTOUIC ON)
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Sql)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Sql)
 
-set(PROJECT_SOURCES
-    src/main.cpp
-    src/mainwindow.cpp
-    include/mainwindow.h
-    src/db/databasemanager.cpp
-    include/db/databasemanager.h
-    src/db/foodrepository.cpp
-    include/db/foodrepository.h
-    src/widgets/searchwidget.cpp
-    include/widgets/searchwidget.h
-    src/widgets/detailswidget.cpp
-    include/widgets/detailswidget.h
-    src/widgets/mealwidget.cpp
-    include/widgets/mealwidget.h
-    src/utils/string_utils.cpp
-    include/utils/string_utils.h
-    resources.qrc
+file(GLOB_RECURSE PROJECT_SOURCES 
+    "src/*.cpp" 
+    "include/*.h"
+    "resources.qrc"
 )
 
 # Versioning
