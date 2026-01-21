@@ -36,7 +36,7 @@ void MealRepository::addFoodLog(int foodId, double grams, int mealId, QDate date
     if (date == QDate::currentDate()) {
         timestamp = QDateTime::currentSecsSinceEpoch();
     } else {
-        timestamp = date.startOfDay().toSecsSinceEpoch() + 43200;  // Noon
+        timestamp = QDateTime(date, QTime(0, 0, 0)).toSecsSinceEpoch() + 43200;  // Noon
     }
 
     QSqlQuery query(db);
@@ -62,8 +62,8 @@ std::vector<MealLogItem> MealRepository::getDailyLogs(QDate date) {
 
     ensureMealNamesLoaded();
 
-    qint64 startOfDay = date.startOfDay().toSecsSinceEpoch();
-    qint64 endOfDay = date.endOfDay().toSecsSinceEpoch();
+    qint64 startOfDay = QDateTime(date, QTime(0, 0, 0)).toSecsSinceEpoch();
+    qint64 endOfDay = QDateTime(date, QTime(23, 59, 59)).toSecsSinceEpoch();
 
     QSqlQuery query(userDb);
     query.prepare(
@@ -128,8 +128,8 @@ void MealRepository::clearDailyLogs(QDate date) {
     QSqlDatabase db = DatabaseManager::instance().userDatabase();
     if (!db.isOpen()) return;
 
-    qint64 startOfDay = date.startOfDay().toSecsSinceEpoch();
-    qint64 endOfDay = date.endOfDay().toSecsSinceEpoch();
+    qint64 startOfDay = QDateTime(date, QTime(0, 0, 0)).toSecsSinceEpoch();
+    qint64 endOfDay = QDateTime(date, QTime(23, 59, 59)).toSecsSinceEpoch();
 
     QSqlQuery query(db);
     query.prepare("DELETE FROM log_food WHERE date >= ? AND date <= ? AND profile_id = 1");

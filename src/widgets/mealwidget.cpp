@@ -4,13 +4,14 @@
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QLabel>
+#include <QMessageBox>
 #include <QVBoxLayout>
 
 MealWidget::MealWidget(QWidget* parent) : QWidget(parent) {
     auto* layout = new QVBoxLayout(this);
 
     // Items List
-    layout->addWidget(new QLabel("Meal Composition", this));
+    layout->addWidget(new QLabel("Meal Composition (Builder)", this));
     itemsTable = new QTableWidget(this);
     itemsTable->setColumnCount(3);
     itemsTable->setHorizontalHeaderLabels({"Food", "Grams", "Calories"});
@@ -18,53 +19,71 @@ MealWidget::MealWidget(QWidget* parent) : QWidget(parent) {
     layout->addWidget(itemsTable);
 
     // Controls
-    clearButton = new QPushButton("Clear Meal", this);
+    auto* buttonLayout = new QHBoxLayout();
+
+    auto* addToLogButton = new QPushButton("Add to Log", this);
+    connect(addToLogButton, &QPushButton::clicked, this, &MealWidget::onAddToLog);
+    buttonLayout->addWidget(addToLogButton);
+
+    clearButton = new QPushButton("Clear Builder", this);
     connect(clearButton, &QPushButton::clicked, this, &MealWidget::clearMeal);
-    layout->addWidget(clearButton);
+    buttonLayout->addWidget(clearButton);
+
+    layout->addLayout(buttonLayout);
 
     // Totals
-    layout->addWidget(new QLabel("Total Nutrition", this));
+    layout->addWidget(new QLabel("Predicted Nutrition", this));
     totalsTable = new QTableWidget(this);
     totalsTable->setColumnCount(3);
     totalsTable->setHorizontalHeaderLabels({"Nutrient", "Total", "Unit"});
     totalsTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
     layout->addWidget(totalsTable);
 
-    refresh();  // Load initial state
-}
-
-void MealWidget::addFood(int foodId, const QString& foodName, double grams) {
-    // Default to meal_id 1 (e.g. Breakfast/General) for now
-    // TODO: Add UI to select meal
-    m_mealRepo.addFoodLog(foodId, grams, 1);
     refresh();
 }
 
-void MealWidget::refresh() {
+void MealWidget::addFood(int foodId, const QString& foodName, double grams) {
+    std::vector<Nutrient> baseNutrients = repository.getFoodNutrients(foodId);
+
+    MealItem item;
+    item.foodId = foodId;
+    item.name = foodName;
+    item.grams = grams;
+    item.nutrients_100g = baseNutrients;
+    mealItems.push_back(item);
+
+    refresh();
+}
+
+void MealWidget::onAddToLog() {
+    if (mealItems.empty()) return;
+
+    // TODO: Add meal selection dialog? For now default to Breakfast/General (1)
+    int mealId = 1;
+
+    for (const auto& item : mealItems) {
+        m_mealRepo.addFoodLog(item.foodId, item.grams, mealId);
+    }
+
+    emit logUpdated();
+
     mealItems.clear();
+    refresh();
+
+    QMessageBox::information(this, "Logged", "Meal added to daily log.");
+}
+
+void MealWidget::refresh() {
     itemsTable->setRowCount(0);
 
-    auto logs = m_mealRepo.getDailyLogs();  // defaults to today
-
-    for (const auto& log : logs) {
-        std::vector<Nutrient> baseNutrients = repository.getFoodNutrients(log.foodId);
-
-        MealItem item;
-        item.foodId = log.foodId;
-        item.name = log.foodName;
-        item.grams = log.grams;
-        item.nutrients_100g = baseNutrients;
-        mealItems.push_back(item);
-
-        // Update Items Table
+    for (const auto& item : mealItems) {
         int row = itemsTable->rowCount();
         itemsTable->insertRow(row);
         itemsTable->setItem(row, 0, new QTableWidgetItem(item.name));
         itemsTable->setItem(row, 1, new QTableWidgetItem(QString::number(item.grams)));
 
-        // Calculate Calories (ID 208)
         double kcal = 0;
-        for (const auto& nut : baseNutrients) {
+        for (const auto& nut : item.nutrients_100g) {
             if (nut.id == 208) {
                 kcal = (nut.amount * item.grams) / 100.0;
                 break;
@@ -77,8 +96,16 @@ void MealWidget::refresh() {
 }
 
 void MealWidget::clearMeal() {
-    m_mealRepo.clearDailyLogs();
-    refresh();
+    if (mealItems.empty()) return;
+
+    auto reply = QMessageBox::question(this, "Clear Builder",
+                                       "Are you sure you want to clear the current meal builder?",
+                                       QMessageBox::Yes | QMessageBox::No);
+
+    if (reply == QMessageBox::Yes) {
+        mealItems.clear();
+        refresh();
+    }
 }
 
 void MealWidget::updateTotals() {

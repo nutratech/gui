@@ -89,9 +89,13 @@ void MainWindow::setupUi() {
     detailsWidget = new DetailsWidget(this);
     tabs->addTab(detailsWidget, "Analyze");
 
-    // Meal Tab
+    // Meal Tab (Builder)
     mealWidget = new MealWidget(this);
-    tabs->addTab(mealWidget, "Meal Tracker");
+    tabs->addTab(mealWidget, "Meal Builder");
+
+    // Daily Log Tab
+    dailyLogWidget = new DailyLogWidget(this);
+    tabs->addTab(dailyLogWidget, "Daily Log");
 
     // Connect Analysis -> Meal
     connect(detailsWidget, &DetailsWidget::addToMeal, this,
@@ -100,6 +104,9 @@ void MainWindow::setupUi() {
                 // Optional: switch tab?
                 // tabs->setCurrentWidget(mealWidget);
             });
+
+    // Connect Meal Builder -> Daily Log
+    connect(mealWidget, &MealWidget::logUpdated, dailyLogWidget, &DailyLogWidget::refresh);
 
     // Status Bar
     dbStatusLabel = new QLabel(this);

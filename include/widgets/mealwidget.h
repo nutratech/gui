@@ -24,8 +24,12 @@ public:
 
     void addFood(int foodId, const QString& foodName, double grams);
 
+signals:
+    void logUpdated();
+
 private slots:
     void clearMeal();
+    void onAddToLog();
 
 private:
     void updateTotals();

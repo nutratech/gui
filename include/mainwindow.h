@@ -6,6 +6,7 @@
 #include <QTabWidget>
 #include <array>
 
+#include "widgets/dailylogwidget.h"
 #include "widgets/detailswidget.h"
 #include "widgets/mealwidget.h"
 #include "widgets/searchwidget.h"
@@ -32,6 +33,7 @@ private:
     SearchWidget* searchWidget;
     DetailsWidget* detailsWidget;
     MealWidget* mealWidget;
+    DailyLogWidget* dailyLogWidget;
     FoodRepository repository;
 
     QMenu* recentFilesMenu;
