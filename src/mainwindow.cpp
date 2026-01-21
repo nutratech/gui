@@ -7,6 +7,7 @@
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QSettings>
+#include <QStatusBar>
 #include <QStringList>
 #include <QVBoxLayout>
 #include <QWidget>
@@ -99,6 +100,35 @@ void MainWindow::setupUi() {
                 // Optional: switch tab?
                 // tabs->setCurrentWidget(mealWidget);
             });
+
+    // Status Bar
+    dbStatusLabel = new QLabel(this);
+    dbStatusLabel->setFrameStyle(QFrame::Panel | QFrame::Sunken);
+    statusBar()->addPermanentWidget(dbStatusLabel);
+    updateStatusBar();
+}
+
+void MainWindow::updateStatusBar() {
+    auto& dbMgr = DatabaseManager::instance();
+    QStringList parts;
+    QString tooltip = "Active Databases:\n";
+
+    if (dbMgr.isOpen()) {
+        parts << "USDA [Connected]";
+        tooltip += QString("- USDA: %1\n").arg(dbMgr.database().databaseName());
+    } else {
+        parts << "USDA [Disconnected]";
+    }
+
+    if (dbMgr.userDatabase().isOpen()) {
+        parts << "User [Connected]";
+        tooltip += QString("- User: %1\n").arg(dbMgr.userDatabase().databaseName());
+    } else {
+        parts << "User [Disconnected]";
+    }
+
+    dbStatusLabel->setText("DB Status: " + parts.join(" | "));
+    dbStatusLabel->setToolTip(tooltip.trimmed());
 }
 
 void MainWindow::onOpenDatabase() {
@@ -116,6 +146,7 @@ void MainWindow::onOpenDatabase() {
         if (DatabaseManager::instance().connect(fileName)) {
             qDebug() << "Switched to database:" << fileName;
             addToRecentFiles(fileName);
+            updateStatusBar();
             // In a real app, we'd emit a signal or refresh all widgets
             // For now, let's just log and show success
             QMessageBox::information(this, "Database Opened",
@@ -140,6 +171,7 @@ void MainWindow::onRecentFileClick() {
         if (DatabaseManager::instance().connect(fileName)) {
             qDebug() << "Switched to database (recent):" << fileName;
             addToRecentFiles(fileName);
+            updateStatusBar();
             QMessageBox::information(this, "Database Opened",
                                      "Successfully connected to: " + fileName);
         } else {

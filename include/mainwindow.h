@@ -1,6 +1,7 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include <QLabel>
 #include <QMainWindow>
 #include <QTabWidget>
 #include <array>
@@ -36,6 +37,10 @@ private:
     QMenu* recentFilesMenu;
     static constexpr int MaxRecentFiles = 5;
     std::array<QAction*, MaxRecentFiles> recentFileActions;
+
+    // Status Bar
+    QLabel* dbStatusLabel;
+    void updateStatusBar();
 };
 
 #endif  // MAINWINDOW_H
