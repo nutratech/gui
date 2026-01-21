@@ -1,14 +1,16 @@
 #include "widgets/searchwidget.h"
 
 #include <QAction>
+#include <QDateTime>
+#include <QElapsedTimer>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QMenu>
 #include <QMessageBox>
+#include <QSettings>
 #include <QVBoxLayout>
 
 #include "widgets/weightinputdialog.h"
-
 SearchWidget::SearchWidget(QWidget* parent) : QWidget(parent) {
     auto* layout = new QVBoxLayout(this);
 
@@ -29,7 +31,14 @@ SearchWidget::SearchWidget(QWidget* parent) : QWidget(parent) {
     connect(searchButton, &QPushButton::clicked, this, &SearchWidget::performSearch);
 
     searchLayout->addWidget(searchInput);
+    searchButton = new QPushButton("Search", this);
+    connect(searchButton, &QPushButton::clicked, this, &SearchWidget::performSearch);
     searchLayout->addWidget(searchButton);
+
+    historyButton = new QPushButton("History", this);
+    connect(historyButton, &QPushButton::clicked, this, &SearchWidget::showHistory);
+    searchLayout->addWidget(historyButton);
+
     layout->addLayout(searchLayout);
 
     // Results table
@@ -50,20 +59,29 @@ SearchWidget::SearchWidget(QWidget* parent) : QWidget(parent) {
             &SearchWidget::onCustomContextMenu);
 
     layout->addWidget(resultsTable);
+
+    loadHistory();
 }
 
 void SearchWidget::performSearch() {
     QString query = searchInput->text().trimmed();
     if (query.length() < 2) return;
 
+    QElapsedTimer timer;
+    timer.start();
+
     resultsTable->setRowCount(0);
 
     std::vector<FoodItem> results = repository.searchFoods(query);
+    int elapsed = timer.elapsed();
 
     resultsTable->setRowCount(static_cast<int>(results.size()));
     for (int i = 0; i < static_cast<int>(results.size()); ++i) {
         const auto& item = results[i];
         resultsTable->setItem(i, 0, new QTableWidgetItem(QString::number(item.id)));
+        resultsTable->setItem(i, 1,
+                              new QTableWidgetItem(item.description));  // Fixed: Description Column
+
         static const std::map<int, QString> groupAbbreviations = {
             {1100, "Vegetables"},      // Vegetables and Vegetable Products
             {600, "Soups/Sauces"},     // Soups, Sauces, and Gravies
@@ -105,6 +123,9 @@ void SearchWidget::performSearch() {
         resultsTable->setItem(i, 5, new QTableWidgetItem(QString::number(item.flavCount)));
         resultsTable->setItem(i, 6, new QTableWidgetItem(QString::number(item.score)));
     }
+
+    emit searchStatus(
+        QString("Search: matched %1 foods in %2 ms").arg(results.size()).arg(elapsed));
 }
 
 void SearchWidget::onRowDoubleClicked(int row, int column) {
@@ -113,7 +134,10 @@ void SearchWidget::onRowDoubleClicked(int row, int column) {
     QTableWidgetItem* descItem = resultsTable->item(row, 1);
 
     if (idItem != nullptr && descItem != nullptr) {
-        emit foodSelected(idItem->text().toInt(), descItem->text());
+        int id = idItem->text().toInt();
+        QString name = descItem->text();
+        addToHistory(id, name);
+        emit foodSelected(id, name);
     }
 }
 
@@ -136,6 +160,10 @@ void SearchWidget::onCustomContextMenu(const QPoint& pos) {
 
     QAction* selectedAction = menu.exec(resultsTable->viewport()->mapToGlobal(pos));
 
+    if (selectedAction) {
+        addToHistory(foodId, foodName);
+    }
+
     if (selectedAction == analyzeAction) {
         emit foodSelected(foodId, foodName);
     } else if (selectedAction == addToMealAction) {
@@ -145,4 +173,65 @@ void SearchWidget::onCustomContextMenu(const QPoint& pos) {
             emit addToMealRequested(foodId, foodName, dlg.getGrams());
         }
     }
+}
+
+void SearchWidget::addToHistory(int foodId, const QString& foodName) {
+    // Remove if exists to move to top
+    for (int i = 0; i < recentHistory.size(); ++i) {
+        if (recentHistory[i].id == foodId) {
+            recentHistory.removeAt(i);
+            break;
+        }
+    }
+
+    HistoryItem item{foodId, foodName, QDateTime::currentDateTime()};
+    recentHistory.prepend(item);
+
+    // Limit to 50
+    while (recentHistory.size() > 50) {
+        recentHistory.removeLast();
+    }
+
+    // Save to settings
+    QSettings settings("NutraTech", "Nutra");
+    QList<QVariant> list;
+    for (const auto& h : recentHistory) {
+        QVariantMap m;
+        m["id"] = h.id;
+        m["name"] = h.name;
+        m["timestamp"] = h.timestamp;
+        list.append(m);
+    }
+    settings.setValue("recentFoods", list);
+}
+
+void SearchWidget::loadHistory() {
+    QSettings settings("NutraTech", "Nutra");
+    QList<QVariant> list = settings.value("recentFoods").toList();
+    recentHistory.clear();
+    for (const auto& v : list) {
+        QVariantMap m = v.toMap();
+        HistoryItem item;
+        item.id = m["id"].toInt();
+        item.name = m["name"].toString();
+        item.timestamp = m["timestamp"].toDateTime();
+        recentHistory.append(item);
+    }
+}
+
+void SearchWidget::showHistory() {
+    resultsTable->setRowCount(0);
+    resultsTable->setRowCount(recentHistory.size());
+
+    for (int i = 0; i < recentHistory.size(); ++i) {
+        const auto& item = recentHistory[i];
+        resultsTable->setItem(i, 0, new QTableWidgetItem(QString::number(item.id)));
+        resultsTable->setItem(i, 1, new QTableWidgetItem(item.name));
+        resultsTable->setItem(i, 2, new QTableWidgetItem("History"));
+        // Empty cols for nutrients etc since we don't store them in history
+        for (int c = 3; c < 7; ++c) {
+            resultsTable->setItem(i, c, new QTableWidgetItem(""));
+        }
+    }
+    emit searchStatus(QString("Showing %1 recent items").arg(recentHistory.size()));
 }

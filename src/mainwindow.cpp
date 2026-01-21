@@ -91,6 +91,8 @@ void MainWindow::setupUi() {
     connect(searchWidget, &SearchWidget::foodSelected, this,
             [=](int foodId, const QString& foodName) {
                 qDebug() << "Selected food:" << foodName << "(" << foodId << ")";
+                // Determine if we are in analysis mode or just searching
+                // For now, simpler handling:
                 detailsWidget->loadFood(foodId, foodName);
                 tabs->setCurrentWidget(detailsWidget);
             });
@@ -100,6 +102,9 @@ void MainWindow::setupUi() {
                 mealWidget->addFood(foodId, foodName, grams);
                 tabs->setCurrentWidget(mealWidget);
             });
+
+    connect(searchWidget, &SearchWidget::searchStatus, this,
+            [=](const QString& msg) { dbStatusLabel->setText(msg); });
 
     // Analysis Tab
     detailsWidget = new DetailsWidget(this);
@@ -117,8 +122,6 @@ void MainWindow::setupUi() {
     connect(detailsWidget, &DetailsWidget::addToMeal, this,
             [=](int foodId, const QString& foodName, double grams) {
                 mealWidget->addFood(foodId, foodName, grams);
-                // Optional: switch tab?
-                // tabs->setCurrentWidget(mealWidget);
             });
 
     // Connect Meal Builder -> Daily Log
@@ -248,16 +251,19 @@ void MainWindow::updateRecentFileActions() {
     int numToShow = static_cast<int>(qMin(static_cast<std::size_t>(sortedFiles.size()),
                                           static_cast<std::size_t>(MaxRecentFiles)));
 
+    QFontMetrics fontMetrics(recentFilesMenu->font());
+
     for (int i = 0; i < numToShow; ++i) {
         QVariantMap m = sortedFiles[i];
         QString path = m["path"].toString();
         QString type = m["type"].toString();
         int version = m["version"].toInt();
-        QString name = QFileInfo(path).fileName();
 
-        // Format: "nt.sqlite3 (User v1)"
-        // Or per user request: "Display pragma version... for full transparency"
-        QString text = QString("&%1 %2 (%3 v%4)").arg(i + 1).arg(name).arg(type).arg(version);
+        // Elide path to ~400 pixels (roughly 50-60 chars depending on font)
+        QString elidedPath = fontMetrics.elidedText(path, Qt::ElideMiddle, 400);
+
+        // Format: "/path/to/file... (User v9)"
+        QString text = QString("&%1 %2 (%3 v%4)").arg(i + 1).arg(elidedPath).arg(type).arg(version);
 
         recentFileActions[static_cast<std::size_t>(i)]->setText(text);
         recentFileActions[static_cast<std::size_t>(i)]->setData(path);
