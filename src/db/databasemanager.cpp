@@ -31,7 +31,10 @@ bool DatabaseManager::isValidNutraDatabase(const QSqlDatabase& db) {
 
 bool DatabaseManager::connect(const QString& path) {
     if (m_db.isOpen()) {
-        return true;
+        if (m_db.databaseName() == path) {
+            return true;
+        }
+        m_db.close();
     }
 
     if (!QFileInfo::exists(path)) {

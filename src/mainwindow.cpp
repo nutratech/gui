@@ -107,6 +107,12 @@ void MainWindow::onOpenDatabase() {
                                      "SQLite Databases (*.sqlite3 *.db)");
 
     if (!fileName.isEmpty()) {
+        if (DatabaseManager::instance().isOpen() &&
+            DatabaseManager::instance().database().databaseName() == fileName) {
+            QMessageBox::information(this, "Already Open", "This database is already loaded.");
+            return;
+        }
+
         if (DatabaseManager::instance().connect(fileName)) {
             qDebug() << "Switched to database:" << fileName;
             addToRecentFiles(fileName);
@@ -124,6 +130,13 @@ void MainWindow::onRecentFileClick() {
     auto* action = qobject_cast<QAction*>(sender());
     if (action != nullptr) {
         QString fileName = action->data().toString();
+
+        if (DatabaseManager::instance().isOpen() &&
+            DatabaseManager::instance().database().databaseName() == fileName) {
+            QMessageBox::information(this, "Already Open", "This database is already loaded.");
+            return;
+        }
+
         if (DatabaseManager::instance().connect(fileName)) {
             qDebug() << "Switched to database (recent):" << fileName;
             addToRecentFiles(fileName);
