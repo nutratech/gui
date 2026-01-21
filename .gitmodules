@@ -1,3 +1,6 @@
 [submodule "usdasqlite"]
-	path = usdasqlite
+	path = lib/usdasqlite
 	url = https://github.com/nutratech/usda-sqlite.git
+[submodule "lib/ntsqlite"]
+	path = lib/ntsqlite
+	url = https://github.com/nutratech/nt-sqlite.git
