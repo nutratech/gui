@@ -15,11 +15,11 @@ DailyLogWidget::DailyLogWidget(QWidget* parent) : QWidget(parent) {
 void DailyLogWidget::setupUi() {
     auto* mainLayout = new QVBoxLayout(this);
 
-    QSplitter* splitter = new QSplitter(Qt::Vertical, this);
+    auto* splitter = new QSplitter(Qt::Vertical, this);
     mainLayout->addWidget(splitter);
 
     // --- Top: Log Table ---
-    QWidget* topWidget = new QWidget(this);
+    auto* topWidget = new QWidget(this);
     auto* topLayout = new QVBoxLayout(topWidget);
     topLayout->setContentsMargins(0, 0, 0, 0);
     topLayout->addWidget(new QLabel("Today's Food Log", this));
@@ -33,11 +33,11 @@ void DailyLogWidget::setupUi() {
     splitter->addWidget(topWidget);
 
     // --- Bottom: Analysis ---
-    QWidget* bottomWidget = new QWidget(this);
+    auto* bottomWidget = new QWidget(this);
     auto* bottomLayout = new QVBoxLayout(bottomWidget);
     bottomLayout->setContentsMargins(0, 0, 0, 0);
 
-    QGroupBox* analysisBox = new QGroupBox("Analysis (Projected)", this);
+    auto* analysisBox = new QGroupBox("Analysis (Projected)", this);
     auto* analysisLayout = new QVBoxLayout(analysisBox);
 
     // Analysis UI

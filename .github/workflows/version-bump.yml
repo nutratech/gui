@@ -1,10 +1,10 @@
-name: Manual Version Bump
+name: Bump Version
 
 on:
   workflow_dispatch:
     inputs:
       bump_type:
-        description: "Type of bump"
+        description: "How to bump version"
         required: true
         default: "patch"
         type: choice
@@ -12,54 +12,89 @@ on:
           - patch
           - minor
           - major
+      pre_release_type:
+        description: "Pre-release type (optional)"
+        required: false
+        default: "none"
+        type: choice
+        options:
+          - none
+          - beta
+          - rc
 
 jobs:
-  bump:
+  bump-version:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Configure Git
+      - name: Git Config
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Calculate and Push New Tag
+      - name: Bump Version
         run: |
-          # Get current tag
-          CURRENT_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-          echo "Current tag: $CURRENT_TAG"
+          # Get latest tag, remove 'v' prefix
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          # Remove v prefix
+          VERSION=${LATEST_TAG#v}
 
-          # Remove 'v' prefix
-          VERSION=${CURRENT_TAG#v}
+          # Parse current version
+          BASE_VERSION=$(echo "$VERSION" | cut -d'-' -f1)
+          PRERELEASE_PART=$(echo "$VERSION" | cut -d'-' -f2- -s)
 
-          # Split version
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$BASE_VERSION"
 
-          # Calculate next version
-          case "${{ inputs.bump_type }}" in
-            major)
-              MAJOR=$((MAJOR + 1))
-              MINOR=0
-              PATCH=0
-              ;;
-            minor)
-              MINOR=$((MINOR + 1))
-              PATCH=0
-              ;;
-            patch)
+          BUMP_TYPE="${{ inputs.bump_type }}"
+          PRE_TYPE="${{ inputs.pre_release_type }}"
+
+          # If currently no prerelease part, simple bump logic or start new prerelease
+          if [ -z "$PRERELEASE_PART" ]; then
+            if [ "$BUMP_TYPE" == "major" ]; then
+              MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0
+            elif [ "$BUMP_TYPE" == "minor" ]; then
+              MINOR=$((MINOR + 1)); PATCH=0
+            else
               PATCH=$((PATCH + 1))
-              ;;
-          esac
+            fi
+            
+            if [ "$PRE_TYPE" != "none" ]; then
+              NEW_TAG="v$MAJOR.$MINOR.$PATCH-$PRE_TYPE.1"
+            else
+              NEW_TAG="v$MAJOR.$MINOR.$PATCH"
+            fi
+          else
+            # Existing prerelease (e.g., 1.0.0-beta.1)
+            # Check if we are switching pre-release type or completing it
+            CURRENT_PRE_TYPE=$(echo "$PRERELEASE_PART" | cut -d'.' -f1)
+            CURRENT_PRE_NUM=$(echo "$PRERELEASE_PART" | cut -d'.' -f2)
+            
+            if [ "$PRE_TYPE" == "none" ]; then
+              # Promotion to stable: 1.0.0-beta.1 -> 1.0.0
+              # Keep same MAJOR.MINOR.PATCH
+              NEW_TAG="v$MAJOR.$MINOR.$PATCH"
+            elif [ "$PRE_TYPE" == "$CURRENT_PRE_TYPE" ]; then
+               # Increment same prerelease type: 1.0.0-beta.1 -> 1.0.0-beta.2
+               NEW_NUM=$((CURRENT_PRE_NUM + 1))
+               NEW_TAG="v$MAJOR.$MINOR.$PATCH-$PRE_TYPE.$NEW_NUM"
+            else
+               # Switching type, restart count? e.g. beta.2 -> rc.1
+               NEW_TAG="v$MAJOR.$MINOR.$PATCH-$PRE_TYPE.1"
+            fi
+            
+            # Note: If user explicitly requested BUMP_TYPE (major/minor/patch) on a pre-release,
+            # this logic might need refinement, but standard flow is:
+            # 1. Bump to new version (potentially starting beta)
+            # 2. Iterate on beta
+            # 3. Promote to stable (none)
+          fi
 
-          NEW_TAG="v$MAJOR.$MINOR.$PATCH"
-          echo "New tag: $NEW_TAG"
+          echo "Bumping from $LATEST_TAG to $NEW_TAG"
+          echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV
 
-          # Create and push tag
-          git tag "$NEW_TAG"
-          git push origin "$NEW_TAG"
+          git tag ${{ env.NEW_TAG }}
+          git push origin ${{ env.NEW_TAG }}

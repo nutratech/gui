@@ -24,7 +24,7 @@ void FoodRepository::ensureCacheLoaded() {
 
     // 1. Load Food Items with Group Names
     QSqlQuery query(
-        "SELECT f.id, f.long_desc, g.fdgrp_desc "
+        "SELECT f.id, f.long_desc, g.fdgrp_desc, f.fdgrp_id "
         "FROM food_des f "
         "JOIN fdgrp g ON f.fdgrp_id = g.id",
         db);
@@ -41,6 +41,7 @@ void FoodRepository::ensureCacheLoaded() {
         item.id = query.value(0).toInt();
         item.description = query.value(1).toString();
         item.foodGroupName = query.value(2).toString();
+        item.foodGroupId = query.value(3).toInt();
 
         // Set counts from map (default 0 if not found)
         auto it = nutrientCounts.find(item.id);

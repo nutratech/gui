@@ -20,6 +20,7 @@ struct ServingWeight {
 
 struct FoodItem {
     int id;
+    int foodGroupId;
     QString description;
     QString foodGroupName;
     int nutrientCount;
