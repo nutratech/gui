@@ -4,6 +4,9 @@ CMAKE := cmake
 CTEST := ctest
 SRC_DIRS := src
 
+# Get version from git
+VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "v0.0.0")
+
 # Find source files for linting
 LINT_LOCS_CPP ?= $(shell git ls-files '*.cpp')
 LINT_LOCS_H ?= $(shell git ls-files '*.h')
@@ -14,6 +17,7 @@ config:
 	$(CMAKE) \
 		-DCMAKE_BUILD_TYPE=Debug \
 		-DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+		-DNUTRA_VERSION="$(VERSION)" \
 		-B $(BUILD_DIR)
 
 .PHONY: debug
@@ -23,7 +27,7 @@ debug: config
 .PHONY: release
 release:
 	$(CMAKE) -E make_directory $(BUILD_DIR)
-	$(CMAKE) -S . -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=Release
+	$(CMAKE) -S . -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=Release -DNUTRA_VERSION="$(VERSION)"
 	$(CMAKE) --build $(BUILD_DIR) --config Release
 
 .PHONY: clean

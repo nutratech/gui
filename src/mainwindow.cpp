@@ -1,4 +1,7 @@
 #include "mainwindow.h"
+#include <QMenu>
+#include <QMenuBar>
+#include <QMessageBox>
 #include <QVBoxLayout>
 
 #include <QDebug>
@@ -13,6 +16,11 @@ void MainWindow::setupUi() {
   setWindowTitle("Nutrient Coach");
   setWindowIcon(QIcon(":/resources/nutrition_icon-no_bg.png"));
   resize(1000, 700);
+
+  // Menu Bar
+  auto *helpMenu = menuBar()->addMenu("&Help");
+  auto *aboutAction = helpMenu->addAction("&About");
+  connect(aboutAction, &QAction::triggered, this, &MainWindow::onAbout);
 
   auto *centralWidget = new QWidget(this);
   setCentralWidget(centralWidget);
@@ -49,4 +57,15 @@ void MainWindow::setupUi() {
             // Optional: switch tab?
             // tabs->setCurrentWidget(mealWidget);
           });
+}
+
+void MainWindow::onAbout() {
+  QMessageBox::about(
+      this, "About Nutrient Coach",
+      QString("<h3>Nutrient Coach %1</h3>"
+              "<p>A C++/Qt application for tracking nutrition.</p>"
+              "<p>Homepage: <a "
+              "href=\"https://github.com/nutratech/gui\">https://github.com/"
+              "nutratech/gui</a></p>")
+          .arg(NUTRA_VERSION_STRING));
 }

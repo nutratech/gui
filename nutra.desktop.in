@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=Nutra
 Comment=Nutrition Tracker and USDA Database
-Exec=nutra
+Exec=@NUTRA_EXECUTABLE@
 Icon=nutra
 Terminal=false
 Type=Application

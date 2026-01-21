@@ -32,6 +32,23 @@ set(PROJECT_SOURCES
     resources.qrc
 )
 
+# Versioning
+if(NOT NUTRA_VERSION)
+    execute_process(
+        COMMAND git describe --tags --always --dirty
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_VERSION
+        ERROR_QUIET
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    if(GIT_VERSION)
+        set(NUTRA_VERSION "${GIT_VERSION}")
+    else()
+        set(NUTRA_VERSION "v0.0.0-unknown")
+    endif()
+endif()
+add_compile_definitions(NUTRA_VERSION_STRING="${NUTRA_VERSION}")
+
 
 
 
@@ -55,9 +72,13 @@ target_link_libraries(test_nutra PRIVATE Qt${QT_VERSION_MAJOR}::Test Qt${QT_VERS
 add_test(NAME FoodRepoTest COMMAND test_nutra)
 
 
-install(TARGETS nutra DESTINATION bin)
-install(FILES nutra.desktop DESTINATION share/applications)
-install(FILES resources/nutrition_icon-no_bg.png DESTINATION share/icons/hicolor/128x128/apps RENAME nutra.png)
+include(GNUInstallDirs)
+set(NUTRA_EXECUTABLE "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/nutra")
+configure_file(nutra.desktop.in ${CMAKE_BINARY_DIR}/nutra.desktop @ONLY)
+
+install(TARGETS nutra DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(FILES ${CMAKE_BINARY_DIR}/nutra.desktop DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/applications)
+install(FILES resources/nutrition_icon-no_bg.png DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/128x128/apps RENAME nutra.png)
 
 if(NUTRA_DB_FILE AND EXISTS "${NUTRA_DB_FILE}")
     install(FILES "${NUTRA_DB_FILE}" DESTINATION share/nutra RENAME usda.sqlite3)

@@ -21,6 +21,9 @@ private:
   SearchWidget *searchWidget;
   DetailsWidget *detailsWidget;
   MealWidget *mealWidget;
+
+private slots:
+  void onAbout();
 };
 
 #endif // MAINWINDOW_H
