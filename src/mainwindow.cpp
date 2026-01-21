@@ -13,6 +13,7 @@
 #include <QWidget>
 
 #include "db/databasemanager.h"
+#include "widgets/preferencesdialog.h"
 #include "widgets/rdasettingswidget.h"
 
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
@@ -51,8 +52,11 @@ void MainWindow::setupUi() {
         dlg.exec();
     });
 
-    QAction* settingsAction = editMenu->addAction("Settings");
-    connect(settingsAction, &QAction::triggered, this, &MainWindow::onSettings);
+    QAction* preferencesAction = editMenu->addAction("Preferences");
+    connect(preferencesAction, &QAction::triggered, this, [this]() {
+        PreferencesDialog dlg(this);
+        dlg.exec();
+    });
 
     // Help Menu
     auto* helpMenu = menuBar()->addMenu("&Help");
