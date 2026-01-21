@@ -59,6 +59,16 @@ void MainWindow::setupUi() {
     auto* aboutAction = helpMenu->addAction("&About");
     connect(aboutAction, &QAction::triggered, this, &MainWindow::onAbout);
 
+    auto* infoAction = helpMenu->addAction("&Info");
+    connect(infoAction, &QAction::triggered, this, [this]() {
+        QMessageBox::information(
+            this, "Philosophy",
+            "It's a free app designed not as a weight-loss app but a true nutrition "
+            "coach, giving insights into what you're getting and what you're lacking, "
+            "empowering you to make more informed and healthy decisions and live more "
+            "of the vibrant life you were put here for.");
+    });
+
     auto* centralWidget = new QWidget(this);
     setCentralWidget(centralWidget);
 
