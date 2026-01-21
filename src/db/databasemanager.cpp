@@ -75,6 +75,41 @@ QSqlDatabase DatabaseManager::userDatabase() const {
     return m_userDb;
 }
 
+DatabaseManager::DatabaseInfo DatabaseManager::getDatabaseInfo(const QString& path) {
+    DatabaseInfo info{false, "Unknown", 0};
+
+    if (!QFileInfo::exists(path)) return info;
+
+    {
+        QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", "info_connection");
+        db.setDatabaseName(path);
+        if (db.open()) {
+            QSqlQuery query(db);
+
+            // Get Version
+            if (query.exec("PRAGMA user_version") && query.next()) {
+                info.version = query.value(0).toInt();
+            }
+
+            // Determine Type
+            bool hasFoodDes = query.exec("SELECT 1 FROM food_des LIMIT 1");
+            bool hasLogFood = query.exec("SELECT 1 FROM log_food LIMIT 1");
+
+            if (hasFoodDes) {
+                info.type = "USDA";
+                info.isValid = true;
+            } else if (hasLogFood) {
+                info.type = "User";
+                info.isValid = true;
+            }
+
+            db.close();
+        }
+    }
+    QSqlDatabase::removeDatabase("info_connection");
+    return info;
+}
+
 void DatabaseManager::initUserDatabase() {
     QString dirPath = QDir::homePath() + "/.nutra";
     QDir().mkpath(dirPath);
@@ -88,126 +123,65 @@ void DatabaseManager::initUserDatabase() {
 
     QSqlQuery query(m_userDb);
 
-    // Helper to execute schema creation
-    auto createTable = [&](const QString& sql) {
-        if (!query.exec(sql)) {
-            qCritical() << "Failed to create table:" << query.lastError().text() << "\nSQL:" << sql;
+    // Check version
+    int schemaVersionOnDisk = 0;
+    if (query.exec("PRAGMA user_version") && query.next()) {
+        schemaVersionOnDisk = query.value(0).toInt();
+    }
+
+    qDebug() << "User database version:" << schemaVersionOnDisk;
+
+    if (schemaVersionOnDisk == 0) {
+        // Initialize from tables.sql
+        // In a real deployed app, this file should be in a resource (.qrc) or installed path
+        // For now, we look in the submodule path if running from source, or a known fallback
+        QString schemaPath = QDir::currentPath() + "/lib/ntsqlite/sql/tables.sql";
+        if (!QFileInfo::exists(schemaPath)) {
+            // Fallback for installed location (adjust as needed for packaging)
+            schemaPath = "/usr/share/nutra/sql/tables.sql";
         }
-    };
 
-    createTable(
-        "CREATE TABLE IF NOT EXISTS version ("
-        "id integer PRIMARY KEY AUTOINCREMENT, "
-        "version text NOT NULL UNIQUE, "
-        "created date NOT NULL, "
-        "notes text)");
+        QFile schemaFile(schemaPath);
+        if (schemaFile.open(QIODevice::ReadOnly)) {
+            QTextStream in(&schemaFile);
+            QString sql = in.readAll();
 
-    createTable(
-        "CREATE TABLE IF NOT EXISTS bmr_eq ("
-        "id integer PRIMARY KEY, "
-        "name text NOT NULL UNIQUE)");
+            // Allow for simple splitting for now as tables.sql is simple
+            QStringList statements = sql.split(';', Qt::SkipEmptyParts);
+            for (const QString& stmt : statements) {
+                QString trimmed = stmt.trimmed();
+                if (!trimmed.isEmpty() && !trimmed.startsWith("--")) {
+                    if (!query.exec(trimmed)) {
+                        qWarning() << "Schema init warning:" << query.lastError().text()
+                                   << "\nStmt:" << trimmed;
+                    }
+                }
+            }
+            // Ensure version is set (tables.sql has it, but good to ensure)
+            query.exec(QString("PRAGMA user_version = %1").arg(CURRENT_SCHEMA_VERSION));
+            qDebug() << "Upgraded user database version from" << schemaVersionOnDisk << "to"
+                     << CURRENT_SCHEMA_VERSION << ".";
 
-    createTable(
-        "CREATE TABLE IF NOT EXISTS bf_eq ("
-        "id integer PRIMARY KEY, "
-        "name text NOT NULL UNIQUE)");
+            // --- Seeding Data (moved from previous implementation) ---
 
-    createTable(
-        "CREATE TABLE IF NOT EXISTS profile ("
-        "id integer PRIMARY KEY AUTOINCREMENT, "
-        "uuid int NOT NULL DEFAULT (RANDOM()), "
-        "name text NOT NULL UNIQUE, "
-        "gender text, "
-        "dob date, "
-        "act_lvl int DEFAULT 2, "
-        "goal_wt real, "
-        "goal_bf real DEFAULT 18, "
-        "bmr_eq_id int DEFAULT 1, "
-        "bf_eq_id int DEFAULT 1, "
-        "created int DEFAULT (strftime ('%s', 'now')), "
-        "FOREIGN KEY (bmr_eq_id) REFERENCES bmr_eq (id) ON UPDATE "
-        "CASCADE ON DELETE CASCADE, "
-        "FOREIGN KEY (bf_eq_id) REFERENCES bf_eq (id) ON UPDATE CASCADE "
-        "ON DELETE CASCADE)");
+            // Ensure default profile exists
+            query.exec("INSERT OR IGNORE INTO profile (id, name) VALUES (1, 'default')");
 
-    createTable(
-        "CREATE TABLE IF NOT EXISTS rda ("
-        "profile_id int NOT NULL, "
-        "nutr_id int NOT NULL, "
-        "rda real NOT NULL, "
-        "PRIMARY KEY (profile_id, nutr_id), "
-        "FOREIGN KEY (profile_id) REFERENCES profile (id) ON UPDATE "
-        "CASCADE ON DELETE CASCADE)");
-
-    createTable(
-        "CREATE TABLE IF NOT EXISTS custom_food ("
-        "id integer PRIMARY KEY AUTOINCREMENT, "
-        "tagname text NOT NULL UNIQUE, "
-        "name text NOT NULL UNIQUE, "
-        "created int DEFAULT (strftime ('%s', 'now')))");
-
-    createTable(
-        "CREATE TABLE IF NOT EXISTS cf_dat ("
-        "cf_id int NOT NULL, "
-        "nutr_id int NOT NULL, "
-        "nutr_val real NOT NULL, "
-        "notes text, "
-        "created int DEFAULT (strftime ('%s', 'now')), "
-        "PRIMARY KEY (cf_id, nutr_id), "
-        "FOREIGN KEY (cf_id) REFERENCES custom_food (id) ON UPDATE "
-        "CASCADE ON DELETE CASCADE)");
-
-    createTable(
-        "CREATE TABLE IF NOT EXISTS meal_name ("
-        "id integer PRIMARY KEY AUTOINCREMENT, "
-        "name text NOT NULL)");
-
-    createTable(
-        "CREATE TABLE IF NOT EXISTS log_food ("
-        "id integer PRIMARY KEY AUTOINCREMENT, "
-        "profile_id int NOT NULL, "
-        "date int DEFAULT (strftime ('%s', 'now')), "
-        "meal_id int NOT NULL, "
-        "food_id int NOT NULL, "
-        "msre_id int NOT NULL, "
-        "amt real NOT NULL, "
-        "created int DEFAULT (strftime ('%s', 'now')), "
-        "FOREIGN KEY (profile_id) REFERENCES profile (id) ON UPDATE "
-        "CASCADE ON DELETE CASCADE, "
-        "FOREIGN KEY (meal_id) REFERENCES meal_name (id) ON UPDATE "
-        "CASCADE ON DELETE CASCADE)");
-
-    createTable(
-        "CREATE TABLE IF NOT EXISTS log_cf ("
-        "id integer PRIMARY KEY AUTOINCREMENT, "
-        "profile_id int NOT NULL, "
-        "date int DEFAULT (strftime ('%s', 'now')), "
-        "meal_id int NOT NULL, "
-        "food_id int NOT NULL, "
-        "custom_food_id int, "
-        "msre_id int NOT NULL, "
-        "amt real NOT NULL, "
-        "created int DEFAULT (strftime ('%s', 'now')), "
-        "FOREIGN KEY (profile_id) REFERENCES profile (id) ON UPDATE "
-        "CASCADE ON DELETE CASCADE, "
-        "FOREIGN KEY (meal_id) REFERENCES meal_name (id) ON UPDATE "
-        "CASCADE ON DELETE CASCADE, "
-        "FOREIGN KEY (custom_food_id) REFERENCES custom_food (id) ON "
-        "UPDATE CASCADE ON DELETE CASCADE)");
-
-    // Default Data Seeding
-
-    // Ensure default profile exists
-    query.exec("INSERT OR IGNORE INTO profile (id, name) VALUES (1, 'default')");
-
-    // Seed standard meal names if table is empty
-    query.exec("SELECT count(*) FROM meal_name");
-    if (query.next() && query.value(0).toInt() == 0) {
-        QStringList meals = {"Breakfast", "Lunch", "Dinner", "Snack", "Brunch"};
-        for (const auto& meal : meals) {
-            query.prepare("INSERT INTO meal_name (name) VALUES (?)");
-            query.addBindValue(meal);
-            query.exec();
+            // Seed standard meal names if table is empty
+            query.exec("SELECT count(*) FROM meal_name");
+            if (query.next() && query.value(0).toInt() == 0) {
+                QStringList meals = {"Breakfast", "Lunch", "Dinner", "Snack", "Brunch"};
+                for (const auto& meal : meals) {
+                    query.prepare("INSERT INTO meal_name (name) VALUES (?)");
+                    query.addBindValue(meal);
+                    query.exec();
+                }
+            }
+        } else {
+            qCritical() << "Could not find or open schema file:" << schemaPath;
         }
+    } else {
+        // Migration logic would go here
+        // if (currentVersion < 2) { ... }
     }
 }

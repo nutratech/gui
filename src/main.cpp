@@ -4,6 +4,7 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QIcon>
+#include <QLockFile>
 #include <QMessageBox>
 #include <QStandardPaths>
 
@@ -15,6 +16,17 @@ int main(int argc, char* argv[]) {
     QApplication::setApplicationName("Nutra");
     QApplication::setOrganizationName("NutraTech");
     QApplication::setWindowIcon(QIcon(":/resources/nutrition_icon-no_bg.png"));
+
+    // Prevent multiple instances
+    QString lockPath =
+        QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/nutra.lock";
+    QLockFile lockFile(lockPath);
+    if (!lockFile.tryLock(100)) {
+        QMessageBox::warning(nullptr, "Nutra is already running",
+                             "Another instance of Nutra is already running.\n"
+                             "Please close it before starting a new one.");
+        return 1;
+    }
 
     // Connect to database
     // Search order:

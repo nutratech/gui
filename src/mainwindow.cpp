@@ -205,31 +205,103 @@ void MainWindow::onRecentFileClick() {
 
 void MainWindow::updateRecentFileActions() {
     QSettings settings("NutraTech", "Nutra");
-    QStringList files = settings.value("recentFiles").toStringList();
 
-    int numRecentFiles = static_cast<int>(
-        qMin(static_cast<std::size_t>(files.size()), static_cast<std::size_t>(MaxRecentFiles)));
+    // Check for legacy setting if new one is empty
+    if (!settings.contains("recentFilesList") && settings.contains("recentFiles")) {
+        QStringList legacyFiles = settings.value("recentFiles").toStringList();
+        QList<QVariant> newFiles;
+        for (const auto& path : legacyFiles) {
+            auto info = DatabaseManager::instance().getDatabaseInfo(path);
+            if (info.isValid) {  // Only migrate valid ones
+                QVariantMap entry;
+                entry["path"] = path;
+                entry["type"] = info.type;
+                entry["version"] = info.version;
+                newFiles.append(entry);
+            }
+        }
+        settings.setValue("recentFilesList", newFiles);
+        settings.remove("recentFiles");  // Clean up legacy
+    }
 
-    for (int i = 0; i < numRecentFiles; ++i) {
-        QString text = QString("&%1 %2").arg(i + 1).arg(QFileInfo(files[i]).fileName());
+    QList<QVariant> files = settings.value("recentFilesList").toList();
+
+    // Sort: User first, then USDA. Within type, preserve order (recency) or sort by name?
+    // Usually "Recent" implies recency. But user asked for "User on top".
+    // So we split into two lists (preserving recency within them) and concat.
+
+    QList<QVariantMap> userDBs;
+    QList<QVariantMap> usdaDBs;
+
+    for (const auto& v : files) {
+        QVariantMap m = v.toMap();
+        if (m["type"].toString() == "User") {
+            userDBs.append(m);
+        } else {
+            usdaDBs.append(m);
+        }
+    }
+
+    QList<QVariantMap> sortedFiles = userDBs;
+    sortedFiles.append(usdaDBs);
+
+    int numToShow = static_cast<int>(qMin(static_cast<std::size_t>(sortedFiles.size()),
+                                          static_cast<std::size_t>(MaxRecentFiles)));
+
+    for (int i = 0; i < numToShow; ++i) {
+        QVariantMap m = sortedFiles[i];
+        QString path = m["path"].toString();
+        QString type = m["type"].toString();
+        int version = m["version"].toInt();
+        QString name = QFileInfo(path).fileName();
+
+        // Format: "nt.sqlite3 (User v1)"
+        // Or per user request: "Display pragma version... for full transparency"
+        QString text = QString("&%1 %2 (%3 v%4)").arg(i + 1).arg(name).arg(type).arg(version);
+
         recentFileActions[static_cast<std::size_t>(i)]->setText(text);
-        recentFileActions[static_cast<std::size_t>(i)]->setData(files[i]);
+        recentFileActions[static_cast<std::size_t>(i)]->setData(path);
         recentFileActions[static_cast<std::size_t>(i)]->setVisible(true);
     }
-    for (int i = numRecentFiles; i < MaxRecentFiles; ++i)
+    for (int i = numToShow; i < MaxRecentFiles; ++i)
         recentFileActions[static_cast<std::size_t>(i)]->setVisible(false);
 
-    recentFilesMenu->setEnabled(numRecentFiles > 0);
+    recentFilesMenu->setEnabled(numToShow > 0);
 }
 
 void MainWindow::addToRecentFiles(const QString& path) {
-    QSettings settings("NutraTech", "Nutra");
-    QStringList files = settings.value("recentFiles").toStringList();
-    files.removeAll(path);
-    files.prepend(path);
-    while (files.size() > MaxRecentFiles) files.removeLast();
+    if (path.isEmpty()) return;
 
-    settings.setValue("recentFiles", files);
+    auto info = DatabaseManager::instance().getDatabaseInfo(path);
+    if (!info.isValid) return;
+
+    QSettings settings("NutraTech", "Nutra");
+    // Read list of QVariantMaps
+    QList<QVariant> files = settings.value("recentFilesList").toList();
+
+    // Remove existing entry for this path
+    for (int i = 0; i < files.size(); ++i) {
+        if (files[i].toMap()["path"].toString() == path) {
+            files.removeAt(i);
+            break;
+        }
+    }
+
+    // Prepare new entry
+    QVariantMap entry;
+    entry["path"] = path;
+    entry["type"] = info.type;
+    entry["version"] = info.version;
+
+    // Prepend new entry
+    files.prepend(entry);
+
+    // Limit list size
+    while (files.size() > MaxRecentFiles) {
+        files.removeLast();
+    }
+
+    settings.setValue("recentFilesList", files);
     updateRecentFileActions();
 }
 
