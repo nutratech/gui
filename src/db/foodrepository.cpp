@@ -166,6 +166,7 @@ std::vector<FoodItem> FoodRepository::searchFoods(const QString& query) {
 }
 
 std::vector<Nutrient> FoodRepository::getFoodNutrients(int foodId) {
+    ensureCacheLoaded();
     std::vector<Nutrient> results;
     QSqlDatabase db = DatabaseManager::instance().database();
 
