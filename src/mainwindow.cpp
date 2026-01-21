@@ -15,10 +15,10 @@
 #include "widgets/rdasettingswidget.h"
 
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
-    for (int i = 0; i < MaxRecentFiles; ++i) {
-        recentFileActions[i] = new QAction(this);
-        recentFileActions[i]->setVisible(false);
-        connect(recentFileActions[i], &QAction::triggered, this, &MainWindow::onRecentFileClick);
+    for (auto& recentFileAction : recentFileActions) {
+        recentFileAction = new QAction(this);
+        recentFileAction->setVisible(false);
+        connect(recentFileAction, &QAction::triggered, this, &MainWindow::onRecentFileClick);
     }
     setupUi();
     updateRecentFileActions();
@@ -40,7 +40,7 @@ void MainWindow::setupUi() {
     connect(openDbAction, &QAction::triggered, this, &MainWindow::onOpenDatabase);
     connect(exitAction, &QAction::triggered, this, &QWidget::close);
 
-    for (int i = 0; i < MaxRecentFiles; ++i) recentFilesMenu->addAction(recentFileActions[i]);
+    for (auto& recentFileAction : recentFileActions) recentFilesMenu->addAction(recentFileAction);
 
     // Edit Menu
     QMenu* editMenu = menuBar()->addMenu("Edit");
@@ -139,15 +139,17 @@ void MainWindow::updateRecentFileActions() {
     QSettings settings("NutraTech", "Nutra");
     QStringList files = settings.value("recentFiles").toStringList();
 
-    int numRecentFiles = qMin(files.size(), MaxRecentFiles);
+    int numRecentFiles = static_cast<int>(
+        qMin(static_cast<std::size_t>(files.size()), static_cast<std::size_t>(MaxRecentFiles)));
 
     for (int i = 0; i < numRecentFiles; ++i) {
         QString text = QString("&%1 %2").arg(i + 1).arg(QFileInfo(files[i]).fileName());
-        recentFileActions[i]->setText(text);
-        recentFileActions[i]->setData(files[i]);
-        recentFileActions[i]->setVisible(true);
+        recentFileActions[static_cast<std::size_t>(i)]->setText(text);
+        recentFileActions[static_cast<std::size_t>(i)]->setData(files[i]);
+        recentFileActions[static_cast<std::size_t>(i)]->setVisible(true);
     }
-    for (int i = numRecentFiles; i < MaxRecentFiles; ++i) recentFileActions[i]->setVisible(false);
+    for (int i = numRecentFiles; i < MaxRecentFiles; ++i)
+        recentFileActions[static_cast<std::size_t>(i)]->setVisible(false);
 
     recentFilesMenu->setEnabled(numRecentFiles > 0);
 }

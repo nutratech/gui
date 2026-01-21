@@ -8,7 +8,7 @@
 
 #include "db/databasemanager.h"
 
-MealRepository::MealRepository() {}
+MealRepository::MealRepository() = default;
 
 void MealRepository::ensureMealNamesLoaded() {
     if (!m_mealNamesCache.empty()) return;
@@ -82,7 +82,7 @@ std::vector<MealLogItem> MealRepository::getDailyLogs(QDate date) {
             item.mealId = query.value(2).toInt();
             item.grams = query.value(3).toDouble();
 
-            if (m_mealNamesCache.count(item.mealId)) {
+            if (m_mealNamesCache.count(item.mealId) != 0U) {
                 item.mealName = m_mealNamesCache[item.mealId];
             } else {
                 item.mealName = "Unknown";
@@ -113,7 +113,7 @@ std::vector<MealLogItem> MealRepository::getDailyLogs(QDate date) {
         }
 
         for (auto& item : results) {
-            if (names.count(item.foodId)) {
+            if (names.count(item.foodId) != 0U) {
                 item.foodName = names[item.foodId];
             } else {
                 item.foodName = "Unknown Food";  // Should not happen if DBs consistent

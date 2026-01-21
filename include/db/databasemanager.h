@@ -21,6 +21,7 @@ private:
     ~DatabaseManager();
 
     void initUserDatabase();
+    bool isValidNutraDatabase(const QSqlDatabase& db);
 
     QSqlDatabase m_db;
     QSqlDatabase m_userDb;

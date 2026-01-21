@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QTabWidget>
+#include <array>
 
 #include "widgets/detailswidget.h"
 #include "widgets/mealwidget.h"
@@ -34,7 +35,7 @@ private:
 
     QMenu* recentFilesMenu;
     static constexpr int MaxRecentFiles = 5;
-    QAction* recentFileActions[MaxRecentFiles];
+    std::array<QAction*, MaxRecentFiles> recentFileActions;
 };
 
 #endif  // MAINWINDOW_H

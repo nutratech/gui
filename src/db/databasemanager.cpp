@@ -22,6 +22,13 @@ DatabaseManager::~DatabaseManager() {
     }
 }
 
+bool DatabaseManager::isValidNutraDatabase(const QSqlDatabase& db) {
+    if (!db.isOpen()) return false;
+    QSqlQuery query(db);
+    // Check for a critical table, e.g., food_des
+    return query.exec("SELECT 1 FROM food_des LIMIT 1");
+}
+
 bool DatabaseManager::connect(const QString& path) {
     if (m_db.isOpen()) {
         return true;
@@ -38,6 +45,12 @@ bool DatabaseManager::connect(const QString& path) {
 
     if (!m_db.open()) {
         qCritical() << "Error opening database:" << m_db.lastError().text();
+        return false;
+    }
+
+    if (!isValidNutraDatabase(m_db)) {
+        qCritical() << "Invalid database: missing essential tables.";
+        m_db.close();
         return false;
     }
 

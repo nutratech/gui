@@ -15,7 +15,7 @@ public:
     explicit WeightInputDialog(const QString& foodName, const std::vector<ServingWeight>& servings,
                                QWidget* parent = nullptr);
 
-    double getGrams() const;
+    [[nodiscard]] double getGrams() const;
 
 private:
     QDoubleSpinBox* amountSpinBox;
