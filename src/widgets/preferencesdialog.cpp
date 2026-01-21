@@ -4,16 +4,19 @@
 #include <QFileInfo>
 #include <QFormLayout>
 #include <QGroupBox>
+#include <QHeaderView>
 #include <QLabel>
 #include <QSqlQuery>
 #include <QTabWidget>
 #include <QVBoxLayout>
 
 #include "db/databasemanager.h"
+#include "widgets/rdasettingswidget.h"
 
-PreferencesDialog::PreferencesDialog(QWidget* parent) : QDialog(parent) {
+PreferencesDialog::PreferencesDialog(FoodRepository& repository, QWidget* parent)
+    : QDialog(parent), m_repository(repository) {
     setWindowTitle("Preferences");
-    setMinimumSize(450, 400);
+    setMinimumSize(550, 450);
     setupUi();
     loadStatistics();
 }
@@ -72,6 +75,10 @@ void PreferencesDialog::setupUi() {
     statsLayout->addStretch();
 
     tabWidget->addTab(statsWidget, "Usage Statistics");
+
+    // === RDA Settings Tab ===
+    auto* rdaWidget = new RDASettingsWidget(m_repository, this);
+    tabWidget->addTab(rdaWidget, "RDA Settings");
 
     mainLayout->addWidget(tabWidget);
 }

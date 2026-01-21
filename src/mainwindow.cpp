@@ -46,15 +46,10 @@ void MainWindow::setupUi() {
 
     // Edit Menu
     QMenu* editMenu = menuBar()->addMenu("Edit");
-    QAction* rdaAction = editMenu->addAction("RDA Settings");
-    connect(rdaAction, &QAction::triggered, this, [this]() {
-        RDASettingsWidget dlg(repository, this);
-        dlg.exec();
-    });
 
     QAction* preferencesAction = editMenu->addAction("Preferences");
     connect(preferencesAction, &QAction::triggered, this, [this]() {
-        PreferencesDialog dlg(this);
+        PreferencesDialog dlg(repository, this);
         dlg.exec();
     });
 

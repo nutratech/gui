@@ -3,14 +3,17 @@
 
 #include <QDialog>
 
+#include "db/foodrepository.h"
+
 class QLabel;
 class QTabWidget;
+class RDASettingsWidget;
 
 class PreferencesDialog : public QDialog {
     Q_OBJECT
 
 public:
-    explicit PreferencesDialog(QWidget* parent = nullptr);
+    explicit PreferencesDialog(FoodRepository& repository, QWidget* parent = nullptr);
 
 private:
     void setupUi();
@@ -30,6 +33,8 @@ private:
     QLabel* lblUsdaSize;
     QLabel* lblUserSize;
     QLabel* lblBackupSize;
+
+    FoodRepository& m_repository;
 };
 
 #endif  // PREFERENCESDIALOG_H
