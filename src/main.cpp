@@ -3,6 +3,7 @@
 #include <QApplication>
 #include <QDebug>
 #include <QDir>
+#include <QFileDialog>
 #include <QFileInfo>
 #include <QIcon>
 #include <QMessageBox>
@@ -44,19 +45,32 @@ int main(int argc, char *argv[]) {
   }
 
   if (dbPath.isEmpty()) {
-    // If not found, default to XDG AppData location for error message/setup
-    // But we can't create it here.
-    dbPath = QDir::homePath() + "/.nutra/usda.sqlite3"; // Fallback default
     qWarning() << "Database not found in standard locations.";
+    QMessageBox::StandardButton resBtn = QMessageBox::question(
+        nullptr, "Database Not Found",
+        "The Nutrient database (usda.sqlite3) was not found.\nWould you like "
+        "to browse for it manually?",
+        QMessageBox::No | QMessageBox::Yes, QMessageBox::Yes);
+
+    if (resBtn == QMessageBox::Yes) {
+      dbPath = QFileDialog::getOpenFileName(
+          nullptr, "Find usda.sqlite3", QDir::homePath(),
+          "SQLite Databases (*.sqlite3 *.db)");
+    }
+
+    if (dbPath.isEmpty()) {
+      return 1; // User cancelled or still not found
+    }
   }
 
   if (!DatabaseManager::instance().connect(dbPath)) {
     QString errorMsg =
         QString("Failed to connect to database at:\n%1\n\nPlease ensure the "
-                "database file exists or reinstall the application.")
+                "database file exists or browse for a valid SQLite file.")
             .arg(dbPath);
     qCritical() << errorMsg;
     QMessageBox::critical(nullptr, "Database Error", errorMsg);
+    // Let's try to let the user browse one more time before giving up
     return 1;
   }
   qDebug() << "Connected to database at:" << dbPath;

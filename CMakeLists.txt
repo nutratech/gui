@@ -35,7 +35,7 @@ set(PROJECT_SOURCES
 # Versioning
 if(NOT NUTRA_VERSION)
     execute_process(
-        COMMAND git describe --tags --always --dirty
+        COMMAND git describe --tags --always
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
         OUTPUT_VARIABLE GIT_VERSION
         ERROR_QUIET

@@ -5,7 +5,7 @@ CTEST := ctest
 SRC_DIRS := src
 
 # Get version from git
-VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "v0.0.0")
+VERSION := $(shell git describe --tags --always 2>/dev/null || echo "v0.0.0")
 
 # Find source files for linting
 LINT_LOCS_CPP ?= $(shell git ls-files '*.cpp')

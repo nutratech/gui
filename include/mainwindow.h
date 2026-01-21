@@ -14,16 +14,25 @@ public:
   MainWindow(QWidget *parent = nullptr);
   ~MainWindow() override;
 
+private slots:
+  void onOpenDatabase();
+  void onRecentFileClick();
+  void onSettings();
+  void onAbout();
+
 private:
   void setupUi();
+  void updateRecentFileActions();
+  void addToRecentFiles(const QString &path);
 
   QTabWidget *tabs;
   SearchWidget *searchWidget;
   DetailsWidget *detailsWidget;
   MealWidget *mealWidget;
 
-private slots:
-  void onAbout();
+  QMenu *recentFilesMenu;
+  static constexpr int MaxRecentFiles = 5;
+  QAction *recentFileActions[MaxRecentFiles];
 };
 
 #endif // MAINWINDOW_H
