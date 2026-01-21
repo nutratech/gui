@@ -16,10 +16,12 @@ public:
 
 signals:
   void foodSelected(int foodId, const QString &foodName);
+  void addToMealRequested(int foodId, const QString &foodName, double grams);
 
 private slots:
   void performSearch();
   void onRowDoubleClicked(int row, int column);
+  void onCustomContextMenu(const QPoint &pos);
 
 private:
   QLineEdit *searchInput;

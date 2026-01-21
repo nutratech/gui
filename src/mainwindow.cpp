@@ -71,6 +71,12 @@ void MainWindow::setupUi() {
             tabs->setCurrentWidget(detailsWidget);
           });
 
+  connect(searchWidget, &SearchWidget::addToMealRequested, this,
+          [=](int foodId, const QString &foodName, double grams) {
+            mealWidget->addFood(foodId, foodName, grams);
+            tabs->setCurrentWidget(mealWidget);
+          });
+
   // Analysis Tab
   detailsWidget = new DetailsWidget(this);
   tabs->addTab(detailsWidget, "Analyze");
@@ -90,7 +96,8 @@ void MainWindow::setupUi() {
 
 void MainWindow::onOpenDatabase() {
   QString fileName = QFileDialog::getOpenFileName(
-      this, "Open USDA Database", "", "SQLite Databases (*.sqlite3 *.db)");
+      this, "Open USDA Database", QDir::homePath() + "/.nutra",
+      "SQLite Databases (*.sqlite3 *.db)");
 
   if (!fileName.isEmpty()) {
     if (DatabaseManager::instance().connect(fileName)) {

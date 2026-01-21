@@ -54,7 +54,7 @@ int main(int argc, char *argv[]) {
 
     if (resBtn == QMessageBox::Yes) {
       dbPath = QFileDialog::getOpenFileName(
-          nullptr, "Find usda.sqlite3", QDir::homePath(),
+          nullptr, "Find usda.sqlite3", QDir::homePath() + "/.nutra",
           "SQLite Databases (*.sqlite3 *.db)");
     }
 
