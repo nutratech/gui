@@ -165,7 +165,11 @@ void DatabaseManager::applySchema(QSqlQuery& query, const QString& schemaPath) {
     QString sql = in.readAll();
 
     // Allow for simple splitting for now as tables.sql is simple
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
     QStringList statements = sql.split(';', Qt::SkipEmptyParts);
+#else
+    QStringList statements = sql.split(';', QString::SkipEmptyParts);
+#endif
     for (const QString& stmt : statements) {
         QString trimmed = stmt.trimmed();
         if (!trimmed.isEmpty() && !trimmed.startsWith("--")) {
