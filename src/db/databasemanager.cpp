@@ -146,18 +146,26 @@ void DatabaseManager::initUserDatabase() {
         QString schemaPath = QDir::currentPath() + "/lib/ntsqlite/sql/tables.sql";
         if (!QFileInfo::exists(schemaPath)) {
             // Fallback for installed location
-            schemaPath = "/usr/share/nutra/sql/tables.sql";
+            QString fallbackPath = "/usr/share/nutra/sql/tables.sql";
+            if (QFileInfo::exists(fallbackPath)) {
+                schemaPath = fallbackPath;
+            } else {
+                qCritical() << "Schema file not found at:" << schemaPath << "or" << fallbackPath;
+                return;
+            }
         }
         applySchema(query, schemaPath);
-    } else {
-        // Migration logic would go here
     }
 }
 
 void DatabaseManager::applySchema(QSqlQuery& query, const QString& schemaPath) {
+    if (!QFileInfo::exists(schemaPath)) {
+        qCritical() << "applySchema: Schema file does not exist:" << schemaPath;
+        return;
+    }
     QFile schemaFile(schemaPath);
     if (!schemaFile.open(QIODevice::ReadOnly)) {
-        qCritical() << "Could not find or open schema file:" << schemaPath;
+        qCritical() << "Could not open schema file:" << schemaPath;
         return;
     }
 
@@ -180,8 +188,12 @@ void DatabaseManager::applySchema(QSqlQuery& query, const QString& schemaPath) {
         }
     }
     // Ensure version and ID are set
-    query.exec(QString("PRAGMA user_version = %1").arg(USER_SCHEMA_VERSION));
-    query.exec(QString("PRAGMA application_id = %1").arg(APP_ID_USER));
+    if (!query.exec(QString("PRAGMA user_version = %1").arg(USER_SCHEMA_VERSION))) {
+        qCritical() << "Failed to set user_version:" << query.lastError().text();
+    }
+    if (!query.exec(QString("PRAGMA application_id = %1").arg(APP_ID_USER))) {
+        qCritical() << "Failed to set application_id:" << query.lastError().text();
+    }
     qDebug() << "Upgraded user database version to" << USER_SCHEMA_VERSION << "and set App ID.";
 
     // --- Seeding Data ---

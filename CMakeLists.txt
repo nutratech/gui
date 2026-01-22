@@ -58,6 +58,7 @@ add_test(NAME FoodRepoTest COMMAND test_nutra)
 
 file(GLOB_RECURSE TEST_DB_SOURCES
     tests/test_databasemanager.cpp
+    tests/test_databasemanager.h
     src/db/*.cpp
     src/utils/*.cpp
 )
@@ -66,7 +67,7 @@ target_include_directories(test_databasemanager PRIVATE ${CMAKE_SOURCE_DIR}/incl
 target_link_libraries(test_databasemanager PRIVATE Qt${QT_VERSION_MAJOR}::Test Qt${QT_VERSION_MAJOR}::Sql)
 add_test(NAME DatabaseManagerTest COMMAND test_databasemanager)
 
-add_executable(test_calculations tests/test_calculations.cpp)
+add_executable(test_calculations tests/test_calculations.cpp tests/test_calculations.h)
 target_include_directories(test_calculations PRIVATE ${CMAKE_SOURCE_DIR}/include)
 target_link_libraries(test_calculations PRIVATE Qt${QT_VERSION_MAJOR}::Test)
 add_test(NAME CalculationsTest COMMAND test_calculations)

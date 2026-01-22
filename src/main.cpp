@@ -18,8 +18,11 @@ int main(int argc, char* argv[]) {
     QApplication::setWindowIcon(QIcon(":/resources/nutrition_icon-no_bg.png"));
 
     // Prevent multiple instances
-    QString lockPath =
-        QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/nutra.lock";
+    QString lockPath = QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation);
+    if (lockPath.isEmpty()) {
+        lockPath = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
+    }
+    lockPath += "/nutra.lock";
     QLockFile lockFile(lockPath);
     if (!lockFile.tryLock(100)) {
         QMessageBox::warning(nullptr, "Nutra is already running",

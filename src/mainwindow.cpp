@@ -15,6 +15,7 @@
 #include "db/databasemanager.h"
 #include "widgets/preferencesdialog.h"
 #include "widgets/rdasettingswidget.h"
+#include "widgets/recipewidget.h"
 
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     for (auto& recentFileAction : recentFileActions) {
@@ -115,6 +116,10 @@ void MainWindow::setupUi() {
     // Meal Tab (Builder)
     mealWidget = new MealWidget(this);
     tabs->addTab(mealWidget, "Meal Builder");
+
+    // Recipes Tab
+    recipeWidget = new RecipeWidget(this);
+    tabs->addTab(recipeWidget, "Recipes");
 
     // Daily Log Tab
     dailyLogWidget = new DailyLogWidget(this);

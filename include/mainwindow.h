@@ -9,6 +9,7 @@
 #include "widgets/dailylogwidget.h"
 #include "widgets/detailswidget.h"
 #include "widgets/mealwidget.h"
+#include "widgets/recipewidget.h"
 #include "widgets/searchwidget.h"
 
 class MainWindow : public QMainWindow {
@@ -33,6 +34,7 @@ private:
     SearchWidget* searchWidget;
     DetailsWidget* detailsWidget;
     MealWidget* mealWidget;
+    RecipeWidget* recipeWidget;
     DailyLogWidget* dailyLogWidget;
     FoodRepository repository;
 

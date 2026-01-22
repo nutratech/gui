@@ -1,20 +1,14 @@
-#include <QtTest>
+#include "test_calculations.h"
 
-class TestCalculations : public QObject {
-    Q_OBJECT
+void TestCalculations::testBMR() {
+    // TDD: Fail mainly because not implemented
+    QEXPECT_FAIL("", "BMR calculation not yet implemented", Continue);
+    QVERIFY(false);
+}
 
-private slots:
-    void testBMR() {
-        // TDD: Fail mainly because not implemented
-        QEXPECT_FAIL("", "BMR calculation not yet implemented", Continue);
-        QVERIFY(false);
-    }
-
-    void testBodyFat() {
-        QEXPECT_FAIL("", "Body Fat calculation not yet implemented", Continue);
-        QVERIFY(false);
-    }
-};
+void TestCalculations::testBodyFat() {
+    QEXPECT_FAIL("", "Body Fat calculation not yet implemented", Continue);
+    QVERIFY(false);
+}
 
 QTEST_MAIN(TestCalculations)
-#include "test_calculations.moc"

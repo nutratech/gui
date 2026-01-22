@@ -244,7 +244,9 @@ void SearchWidget::updateCompleterModel() {
 }
 
 void SearchWidget::onCompleterActivated(const QString& text) {
+    searchInput->blockSignals(true);
     searchInput->setText(text);
+    searchInput->blockSignals(false);
     performSearch();
 }
 

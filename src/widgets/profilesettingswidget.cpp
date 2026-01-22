@@ -58,6 +58,7 @@ void ProfileSettingsWidget::setupUi() {
     // Activity Level
     activitySlider = new QSlider(Qt::Horizontal, this);
     activitySlider->setRange(1, 5);
+    activitySlider->setValue(2);  // Default to Lightly Active
     activitySlider->setTickPosition(QSlider::TicksBelow);
     activitySlider->setTickInterval(1);
 
