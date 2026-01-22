@@ -50,7 +50,9 @@ void MainWindow::setupUi() {
     QAction* preferencesAction = editMenu->addAction("Preferences");
     connect(preferencesAction, &QAction::triggered, this, [this]() {
         PreferencesDialog dlg(repository, this);
-        dlg.exec();
+        if (dlg.exec() == QDialog::Accepted) {
+            searchWidget->reloadSettings();
+        }
     });
 
     // Help Menu

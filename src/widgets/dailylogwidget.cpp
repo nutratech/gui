@@ -130,7 +130,7 @@ void DailyLogWidget::updateAnalysis() {
     double rdaCarbs = 300;
     double rdaFat = 80;
 
-    auto updateBar = [&](QProgressBar* bar, int nutrId, double rda) {
+    auto updateBar = [&](QProgressBar* bar, int nutrId, double rda, const QString& normalColor) {
         double val = totals[nutrId];
         double projectedVal = val * multiplier;
 
@@ -153,15 +153,16 @@ void DailyLogWidget::updateAnalysis() {
         if (pct > 100) {
             bar->setStyleSheet("QProgressBar::chunk { background-color: #8e44ad; }");
         } else {
-            // Reset style
-            bar->setStyleSheet("");
+            // Restore original color
+            bar->setStyleSheet(
+                QString("QProgressBar::chunk { background-color: %1; }").arg(normalColor));
         }
     };
 
-    updateBar(kcalBar, 208, rdaKcal);
-    updateBar(proteinBar, 203, rdaProtein);
-    updateBar(carbsBar, 205, rdaCarbs);
-    updateBar(fatBar, 204, rdaFat);
+    updateBar(kcalBar, 208, rdaKcal, "#3498db");
+    updateBar(proteinBar, 203, rdaProtein, "#e74c3c");
+    updateBar(carbsBar, 205, rdaCarbs, "#f1c40f");
+    updateBar(fatBar, 204, rdaFat, "#2ecc71");
 }
 
 void DailyLogWidget::updateTable() {

@@ -7,6 +7,7 @@
 #include <QHeaderView>
 #include <QMenu>
 #include <QMessageBox>
+#include <QPushButton>
 #include <QSettings>
 #include <QVBoxLayout>
 
@@ -22,7 +23,8 @@ SearchWidget::SearchWidget(QWidget* parent) : QWidget(parent) {
 
     searchTimer = new QTimer(this);
     searchTimer->setSingleShot(true);
-    searchTimer->setInterval(600);  // 600ms debounce
+
+    reloadSettings();
 
     // History Completer
     historyModel = new QStringListModel(this);
@@ -39,6 +41,10 @@ SearchWidget::SearchWidget(QWidget* parent) : QWidget(parent) {
     connect(searchInput, &QLineEdit::returnPressed, this, &SearchWidget::performSearch);
 
     searchLayout->addWidget(searchInput);
+
+    auto* searchButton = new QPushButton("Search", this);
+    connect(searchButton, &QPushButton::clicked, this, &SearchWidget::performSearch);
+    searchLayout->addWidget(searchButton);
 
     layout->addLayout(searchLayout);
 
@@ -67,6 +73,9 @@ SearchWidget::SearchWidget(QWidget* parent) : QWidget(parent) {
 void SearchWidget::performSearch() {
     QString query = searchInput->text().trimmed();
     if (query.length() < 2) return;
+
+    // Save query to history
+    addToHistory(0, query);
 
     QElapsedTimer timer;
     timer.start();
@@ -179,7 +188,10 @@ void SearchWidget::onCustomContextMenu(const QPoint& pos) {
 void SearchWidget::addToHistory(int foodId, const QString& foodName) {
     // Remove if exists to move to top
     for (int i = 0; i < recentHistory.size(); ++i) {
-        if (recentHistory[i].id == foodId) {
+        bool sameId = (foodId != 0) && (recentHistory[i].id == foodId);
+        bool sameName = (recentHistory[i].name.compare(foodName, Qt::CaseInsensitive) == 0);
+
+        if (sameId || sameName) {
             recentHistory.removeAt(i);
             break;
         }
@@ -234,4 +246,11 @@ void SearchWidget::updateCompleterModel() {
 void SearchWidget::onCompleterActivated(const QString& text) {
     searchInput->setText(text);
     performSearch();
+}
+
+void SearchWidget::reloadSettings() {
+    QSettings settings("NutraTech", "Nutra");
+    int debounce = settings.value("searchDebounce", 600).toInt();
+    if (debounce < 250) debounce = 250;
+    searchTimer->setInterval(debounce);
 }

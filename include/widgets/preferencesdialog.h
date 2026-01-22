@@ -8,6 +8,8 @@
 class QLabel;
 class QTabWidget;
 class RDASettingsWidget;
+class ProfileSettingsWidget;
+class QSpinBox;
 
 class PreferencesDialog : public QDialog {
     Q_OBJECT
@@ -15,12 +17,23 @@ class PreferencesDialog : public QDialog {
 public:
     explicit PreferencesDialog(FoodRepository& repository, QWidget* parent = nullptr);
 
+public slots:
+    void save();
+
 private:
     void setupUi();
     void loadStatistics();
+    void loadGeneralSettings();
     [[nodiscard]] QString formatBytes(qint64 bytes) const;
 
     QTabWidget* tabWidget;
+
+    // General Settings
+    QSpinBox* debounceSpin;
+
+    // Widgets
+    ProfileSettingsWidget* profileWidget;
+    RDASettingsWidget* rdaWidget;
 
     // Stats labels
     QLabel* lblFoodLogs;

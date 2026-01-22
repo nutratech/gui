@@ -11,7 +11,7 @@ public:
     static constexpr int USER_SCHEMA_VERSION = 9;
     static constexpr int USDA_SCHEMA_VERSION = 1;   // Schema version for USDA data import
     static constexpr int APP_ID_USDA = 0x55534441;  // 'USDA' (ASCII)
-    static constexpr int APP_ID_USER = 0x4E555452;  // 'NUTR' (ASCII)
+    static constexpr int APP_ID_USER = 0x4E544442;  // 'NTDB' (ASCII)
     bool connect(const QString& path);
     [[nodiscard]] bool isOpen() const;
     [[nodiscard]] QSqlDatabase database() const;

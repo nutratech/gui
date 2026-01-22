@@ -56,6 +56,16 @@ target_link_libraries(test_nutra PRIVATE Qt${QT_VERSION_MAJOR}::Test Qt${QT_VERS
 
 add_test(NAME FoodRepoTest COMMAND test_nutra)
 
+add_executable(test_databasemanager tests/test_databasemanager.cpp src/db/databasemanager.cpp src/db/foodrepository.cpp src/utils/string_utils.cpp)
+target_include_directories(test_databasemanager PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_link_libraries(test_databasemanager PRIVATE Qt${QT_VERSION_MAJOR}::Test Qt${QT_VERSION_MAJOR}::Sql)
+add_test(NAME DatabaseManagerTest COMMAND test_databasemanager)
+
+add_executable(test_calculations tests/test_calculations.cpp)
+target_include_directories(test_calculations PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_link_libraries(test_calculations PRIVATE Qt${QT_VERSION_MAJOR}::Test)
+add_test(NAME CalculationsTest COMMAND test_calculations)
+
 
 include(GNUInstallDirs)
 set(NUTRA_EXECUTABLE "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/nutra")

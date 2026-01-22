@@ -18,6 +18,8 @@ class SearchWidget : public QWidget {
 public:
     explicit SearchWidget(QWidget* parent = nullptr);
 
+    void reloadSettings();
+
 signals:
     void foodSelected(int foodId, const QString& foodName);
     void addToMealRequested(int foodId, const QString& foodName, double grams);
