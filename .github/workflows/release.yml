@@ -167,10 +167,10 @@ jobs:
         with:
           prerelease: ${{ steps.check_prerelease.outputs.is_prerelease }}
           files: |
-            nutra-linux-20.04/nutra
-            nutra-linux-22.04/nutra
-            nutra-linux-24.04/nutra
-            nutra-win64.exe/nutra.exe
-            nutra-macos.app/**
+            artifacts/nutra-linux-20.04/nutra
+            artifacts/nutra-linux-22.04/nutra
+            artifacts/nutra-linux-24.04/nutra
+            artifacts/nutra-win64.exe/nutra.exe
+            artifacts/nutra-macos.app/**
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

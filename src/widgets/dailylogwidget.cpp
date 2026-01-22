@@ -153,8 +153,8 @@ void DailyLogWidget::updateAnalysis() {
         if (pct > 100) {
             bar->setStyleSheet("QProgressBar::chunk { background-color: #8e44ad; }");
         } else {
-            // Reset style (hacky, ideally use separate stylesheet)
-            // bar->setStyleSheet("");
+            // Reset style
+            bar->setStyleSheet("");
         }
     };
 

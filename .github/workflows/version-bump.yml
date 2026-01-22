@@ -96,5 +96,5 @@ jobs:
           echo "Bumping from $LATEST_TAG to $NEW_TAG"
           echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV
 
-          git tag ${{ env.NEW_TAG }}
-          git push origin ${{ env.NEW_TAG }}
+          git tag $NEW_TAG
+          git push origin $NEW_TAG

@@ -148,7 +148,6 @@ void MealRepository::removeLogEntry(int logId) {
     QSqlQuery query(db);
     query.prepare("DELETE FROM log_food WHERE id = ?");
     query.addBindValue(logId);
-    query.addBindValue(logId);
     if (!query.exec()) {
         qCritical() << "Failed to remove log entry:" << query.lastError().text();
     }
