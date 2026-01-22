@@ -56,7 +56,12 @@ target_link_libraries(test_nutra PRIVATE Qt${QT_VERSION_MAJOR}::Test Qt${QT_VERS
 
 add_test(NAME FoodRepoTest COMMAND test_nutra)
 
-add_executable(test_databasemanager tests/test_databasemanager.cpp src/db/databasemanager.cpp src/db/foodrepository.cpp src/utils/string_utils.cpp)
+file(GLOB_RECURSE TEST_DB_SOURCES
+    tests/test_databasemanager.cpp
+    src/db/*.cpp
+    src/utils/*.cpp
+)
+add_executable(test_databasemanager ${TEST_DB_SOURCES})
 target_include_directories(test_databasemanager PRIVATE ${CMAKE_SOURCE_DIR}/include)
 target_link_libraries(test_databasemanager PRIVATE Qt${QT_VERSION_MAJOR}::Test Qt${QT_VERSION_MAJOR}::Sql)
 add_test(NAME DatabaseManagerTest COMMAND test_databasemanager)

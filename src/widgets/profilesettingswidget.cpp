@@ -145,8 +145,8 @@ void ProfileSettingsWidget::loadProfile() {
         heightSpin->setValue(q.value(4).toDouble());
 
         int act = q.value(5).toInt();
-        if (act < 1) act = 1;
-        if (act > 5) act = 5;
+        act = std::max(act, 1);
+        act = std::min(act, 5);
         activitySlider->setValue(act);
     } else {
         // Default insert if missing?

@@ -122,7 +122,7 @@ void PreferencesDialog::save() {
     settings.setValue("searchDebounce", debounceSpin->value());
 
     // Save Profile
-    if (profileWidget) profileWidget->save();
+    if (profileWidget != nullptr) profileWidget->save();
 
     // RDA saves automatically on edit in its own widget (checking RDASettingsWidget design
     // recommended, assuming yes for now or needs explicit save call if it supports it) Actually

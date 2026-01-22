@@ -251,6 +251,6 @@ void SearchWidget::onCompleterActivated(const QString& text) {
 void SearchWidget::reloadSettings() {
     QSettings settings("NutraTech", "Nutra");
     int debounce = settings.value("searchDebounce", 600).toInt();
-    if (debounce < 250) debounce = 250;
+    debounce = std::max(debounce, 250);
     searchTimer->setInterval(debounce);
 }
