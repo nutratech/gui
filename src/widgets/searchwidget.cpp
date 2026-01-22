@@ -11,33 +11,34 @@
 #include <QVBoxLayout>
 
 #include "widgets/weightinputdialog.h"
+
 SearchWidget::SearchWidget(QWidget* parent) : QWidget(parent) {
     auto* layout = new QVBoxLayout(this);
 
     // Search bar
     auto* searchLayout = new QHBoxLayout();
     searchInput = new QLineEdit(this);
-    searchInput->setPlaceholderText("Search for food...");
+    searchInput->setPlaceholderText("Search for food (or type to see history)...");
 
     searchTimer = new QTimer(this);
     searchTimer->setSingleShot(true);
     searchTimer->setInterval(600);  // 600ms debounce
 
+    // History Completer
+    historyModel = new QStringListModel(this);
+    historyCompleter = new QCompleter(historyModel, this);
+    historyCompleter->setCaseSensitivity(Qt::CaseInsensitive);
+    historyCompleter->setCompletionMode(QCompleter::PopupCompletion);
+    searchInput->setCompleter(historyCompleter);
+
+    connect(historyCompleter, QOverload<const QString&>::of(&QCompleter::activated), this,
+            &SearchWidget::onCompleterActivated);
+
     connect(searchInput, &QLineEdit::textChanged, this, [=]() { searchTimer->start(); });
     connect(searchTimer, &QTimer::timeout, this, &SearchWidget::performSearch);
     connect(searchInput, &QLineEdit::returnPressed, this, &SearchWidget::performSearch);
 
-    searchButton = new QPushButton("Search", this);
-    connect(searchButton, &QPushButton::clicked, this, &SearchWidget::performSearch);
-
     searchLayout->addWidget(searchInput);
-    searchButton = new QPushButton("Search", this);
-    connect(searchButton, &QPushButton::clicked, this, &SearchWidget::performSearch);
-    searchLayout->addWidget(searchButton);
-
-    historyButton = new QPushButton("History", this);
-    connect(historyButton, &QPushButton::clicked, this, &SearchWidget::showHistory);
-    searchLayout->addWidget(historyButton);
 
     layout->addLayout(searchLayout);
 
@@ -73,7 +74,7 @@ void SearchWidget::performSearch() {
     resultsTable->setRowCount(0);
 
     std::vector<FoodItem> results = repository.searchFoods(query);
-    int elapsed = timer.elapsed();
+    int elapsed = static_cast<int>(timer.elapsed());
 
     resultsTable->setRowCount(static_cast<int>(results.size()));
     for (int i = 0; i < static_cast<int>(results.size()); ++i) {
@@ -160,7 +161,7 @@ void SearchWidget::onCustomContextMenu(const QPoint& pos) {
 
     QAction* selectedAction = menu.exec(resultsTable->viewport()->mapToGlobal(pos));
 
-    if (selectedAction) {
+    if (selectedAction != nullptr) {
         addToHistory(foodId, foodName);
     }
 
@@ -203,6 +204,8 @@ void SearchWidget::addToHistory(int foodId, const QString& foodName) {
         list.append(m);
     }
     settings.setValue("recentFoods", list);
+
+    updateCompleterModel();
 }
 
 void SearchWidget::loadHistory() {
@@ -217,21 +220,18 @@ void SearchWidget::loadHistory() {
         item.timestamp = m["timestamp"].toDateTime();
         recentHistory.append(item);
     }
+    updateCompleterModel();
 }
 
-void SearchWidget::showHistory() {
-    resultsTable->setRowCount(0);
-    resultsTable->setRowCount(recentHistory.size());
-
-    for (int i = 0; i < recentHistory.size(); ++i) {
-        const auto& item = recentHistory[i];
-        resultsTable->setItem(i, 0, new QTableWidgetItem(QString::number(item.id)));
-        resultsTable->setItem(i, 1, new QTableWidgetItem(item.name));
-        resultsTable->setItem(i, 2, new QTableWidgetItem("History"));
-        // Empty cols for nutrients etc since we don't store them in history
-        for (int c = 3; c < 7; ++c) {
-            resultsTable->setItem(i, c, new QTableWidgetItem(""));
-        }
+void SearchWidget::updateCompleterModel() {
+    QStringList suggestions;
+    for (const auto& item : recentHistory) {
+        suggestions << item.name;
     }
-    emit searchStatus(QString("Showing %1 recent items").arg(recentHistory.size()));
+    historyModel->setStringList(suggestions);
+}
+
+void SearchWidget::onCompleterActivated(const QString& text) {
+    searchInput->setText(text);
+    performSearch();
 }

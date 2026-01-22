@@ -1,9 +1,11 @@
 #ifndef SEARCHWIDGET_H
 #define SEARCHWIDGET_H
 
+#include <QCompleter>
 #include <QDateTime>
 #include <QLineEdit>
 #include <QPushButton>
+#include <QStringListModel>
 #include <QTableWidget>
 #include <QTimer>
 #include <QWidget>
@@ -25,18 +27,20 @@ private slots:
     void performSearch();
     void onRowDoubleClicked(int row, int column);
     void onCustomContextMenu(const QPoint& pos);
-    void showHistory();
+    void onCompleterActivated(const QString& text);
 
 private:
     void addToHistory(int foodId, const QString& foodName);
     void loadHistory();
+    void updateCompleterModel();
 
     QLineEdit* searchInput;
-    QPushButton* searchButton;
-    QPushButton* historyButton;
     QTableWidget* resultsTable;
     FoodRepository repository;
     QTimer* searchTimer;
+
+    QCompleter* historyCompleter;
+    QStringListModel* historyModel;
 
     struct HistoryItem {
         int id;

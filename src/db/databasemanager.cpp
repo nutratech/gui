@@ -87,20 +87,33 @@ DatabaseManager::DatabaseInfo DatabaseManager::getDatabaseInfo(const QString& pa
             QSqlQuery query(db);
 
             // Get Version
-            if (query.exec("PRAGMA user_version") && query.next()) {
-                info.version = query.value(0).toInt();
+            info.version = instance().getSchemaVersion(db);
+
+            // Get App ID
+            int appId = 0;
+            if (query.exec("PRAGMA application_id") && query.next()) {
+                appId = query.value(0).toInt();
             }
 
             // Determine Type
-            bool hasFoodDes = query.exec("SELECT 1 FROM food_des LIMIT 1");
-            bool hasLogFood = query.exec("SELECT 1 FROM log_food LIMIT 1");
-
-            if (hasFoodDes) {
+            if (appId == APP_ID_USDA) {
                 info.type = "USDA";
                 info.isValid = true;
-            } else if (hasLogFood) {
+            } else if (appId == APP_ID_USER) {
                 info.type = "User";
                 info.isValid = true;
+            } else {
+                // Fallback: Check tables
+                bool hasFoodDes = query.exec("SELECT 1 FROM food_des LIMIT 1");
+                bool hasLogFood = query.exec("SELECT 1 FROM log_food LIMIT 1");
+
+                if (hasFoodDes) {
+                    info.type = "USDA";
+                    info.isValid = true;
+                } else if (hasLogFood) {
+                    info.type = "User";
+                    info.isValid = true;
+                }
             }
 
             db.close();
@@ -124,64 +137,71 @@ void DatabaseManager::initUserDatabase() {
     QSqlQuery query(m_userDb);
 
     // Check version
-    int schemaVersionOnDisk = 0;
-    if (query.exec("PRAGMA user_version") && query.next()) {
-        schemaVersionOnDisk = query.value(0).toInt();
-    }
+    int schemaVersionOnDisk = getSchemaVersion(m_userDb);
 
     qDebug() << "User database version:" << schemaVersionOnDisk;
 
     if (schemaVersionOnDisk == 0) {
         // Initialize from tables.sql
-        // In a real deployed app, this file should be in a resource (.qrc) or installed path
-        // For now, we look in the submodule path if running from source, or a known fallback
         QString schemaPath = QDir::currentPath() + "/lib/ntsqlite/sql/tables.sql";
         if (!QFileInfo::exists(schemaPath)) {
-            // Fallback for installed location (adjust as needed for packaging)
+            // Fallback for installed location
             schemaPath = "/usr/share/nutra/sql/tables.sql";
         }
-
-        QFile schemaFile(schemaPath);
-        if (schemaFile.open(QIODevice::ReadOnly)) {
-            QTextStream in(&schemaFile);
-            QString sql = in.readAll();
-
-            // Allow for simple splitting for now as tables.sql is simple
-            QStringList statements = sql.split(';', Qt::SkipEmptyParts);
-            for (const QString& stmt : statements) {
-                QString trimmed = stmt.trimmed();
-                if (!trimmed.isEmpty() && !trimmed.startsWith("--")) {
-                    if (!query.exec(trimmed)) {
-                        qWarning() << "Schema init warning:" << query.lastError().text()
-                                   << "\nStmt:" << trimmed;
-                    }
-                }
-            }
-            // Ensure version is set (tables.sql has it, but good to ensure)
-            query.exec(QString("PRAGMA user_version = %1").arg(CURRENT_SCHEMA_VERSION));
-            qDebug() << "Upgraded user database version from" << schemaVersionOnDisk << "to"
-                     << CURRENT_SCHEMA_VERSION << ".";
-
-            // --- Seeding Data (moved from previous implementation) ---
-
-            // Ensure default profile exists
-            query.exec("INSERT OR IGNORE INTO profile (id, name) VALUES (1, 'default')");
-
-            // Seed standard meal names if table is empty
-            query.exec("SELECT count(*) FROM meal_name");
-            if (query.next() && query.value(0).toInt() == 0) {
-                QStringList meals = {"Breakfast", "Lunch", "Dinner", "Snack", "Brunch"};
-                for (const auto& meal : meals) {
-                    query.prepare("INSERT INTO meal_name (name) VALUES (?)");
-                    query.addBindValue(meal);
-                    query.exec();
-                }
-            }
-        } else {
-            qCritical() << "Could not find or open schema file:" << schemaPath;
-        }
+        applySchema(query, schemaPath);
     } else {
         // Migration logic would go here
-        // if (currentVersion < 2) { ... }
     }
+}
+
+void DatabaseManager::applySchema(QSqlQuery& query, const QString& schemaPath) {
+    QFile schemaFile(schemaPath);
+    if (!schemaFile.open(QIODevice::ReadOnly)) {
+        qCritical() << "Could not find or open schema file:" << schemaPath;
+        return;
+    }
+
+    QTextStream in(&schemaFile);
+    QString sql = in.readAll();
+
+    // Allow for simple splitting for now as tables.sql is simple
+    QStringList statements = sql.split(';', Qt::SkipEmptyParts);
+    for (const QString& stmt : statements) {
+        QString trimmed = stmt.trimmed();
+        if (!trimmed.isEmpty() && !trimmed.startsWith("--")) {
+            if (!query.exec(trimmed)) {
+                qWarning() << "Schema init warning:" << query.lastError().text()
+                           << "\nStmt:" << trimmed;
+            }
+        }
+    }
+    // Ensure version and ID are set
+    query.exec(QString("PRAGMA user_version = %1").arg(USER_SCHEMA_VERSION));
+    query.exec(QString("PRAGMA application_id = %1").arg(APP_ID_USER));
+    qDebug() << "Upgraded user database version to" << USER_SCHEMA_VERSION << "and set App ID.";
+
+    // --- Seeding Data ---
+
+    // Ensure default profile exists
+    query.exec("INSERT OR IGNORE INTO profile (id, name) VALUES (1, 'default')");
+
+    // Seed standard meal names if table is empty
+    query.exec("SELECT count(*) FROM meal_name");
+    if (query.next() && query.value(0).toInt() == 0) {
+        QStringList meals = {"Breakfast", "Lunch", "Dinner", "Snack", "Brunch"};
+        for (const auto& meal : meals) {
+            query.prepare("INSERT INTO meal_name (name) VALUES (?)");
+            query.addBindValue(meal);
+            query.exec();
+        }
+    }
+}
+
+int DatabaseManager::getSchemaVersion(const QSqlDatabase& db) {
+    if (!db.isOpen()) return 0;
+    QSqlQuery query(db);
+    if (query.exec("PRAGMA user_version") && query.next()) {
+        return query.value(0).toInt();
+    }
+    return 0;
 }
