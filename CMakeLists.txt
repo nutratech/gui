@@ -84,3 +84,16 @@ install(FILES resources/nutrition_icon-no_bg.png DESTINATION ${CMAKE_INSTALL_DAT
 if(NUTRA_DB_FILE AND EXISTS "${NUTRA_DB_FILE}")
     install(FILES "${NUTRA_DB_FILE}" DESTINATION share/nutra RENAME usda.sqlite3)
 endif()
+
+# AppImage generation (requires linuxdeploy and linuxdeploy-plugin-qt in PATH)
+find_program(LINUXDEPLOY linuxdeploy)
+
+if(LINUXDEPLOY)
+    add_custom_target(appimage
+        COMMAND ${CMAKE_COMMAND} --install . --prefix AppDir/usr
+        COMMAND ${LINUXDEPLOY} --appdir=AppDir --plugin=qt --output=appimage
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMENT "Generating AppImage..."
+        VERBATIM
+    )
+endif()

@@ -30,6 +30,12 @@ release:
 	$(CMAKE) -S . -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=Release -DNUTRA_VERSION="$(VERSION)"
 	$(CMAKE) --build $(BUILD_DIR) --config Release
 
+.PHONY: appimage
+appimage:
+	$(CMAKE) -B build -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release
+	$(CMAKE) --build build -j"$(nproc)"
+	$(CMAKE) --build build --target appimage
+
 .PHONY: clean
 clean:
 	$(CMAKE) -E remove_directory $(BUILD_DIR)
