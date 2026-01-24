@@ -25,6 +25,7 @@ void TestDatabaseManager::testUserDatabaseInit() {
     q.exec("CREATE TABLE log_food (id int)");
 
     db.close();
+    db = QSqlDatabase();  // Clear the object so it doesn't hold reference
 
     auto info = DatabaseManager::instance().getDatabaseInfo(dbPath);
     QCOMPARE(info.type, QString("User"));
@@ -44,6 +45,7 @@ void TestDatabaseManager::testInvalidDatabase() {
     QVERIFY(db.open());
     // Empty DB
     db.close();
+    db = QSqlDatabase();  // Clear the object so it doesn't hold reference
 
     auto info = DatabaseManager::instance().getDatabaseInfo(dbPath);
     QVERIFY(info.isValid == false);

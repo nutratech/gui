@@ -8,7 +8,7 @@
 
 #include "db/databasemanager.h"
 
-RecipeRepository::RecipeRepository() {}
+RecipeRepository::RecipeRepository() = default;
 
 int RecipeRepository::createRecipe(const QString& name, const QString& instructions) {
     QSqlDatabase db = DatabaseManager::instance().userDatabase();
@@ -21,10 +21,9 @@ int RecipeRepository::createRecipe(const QString& name, const QString& instructi
 
     if (query.exec()) {
         return query.lastInsertId().toInt();
-    } else {
-        qCritical() << "Failed to create recipe:" << query.lastError().text();
-        return -1;
     }
+    qCritical() << "Failed to create recipe:" << query.lastError().text();
+    return -1;
 }
 
 bool RecipeRepository::updateRecipe(int id, const QString& name, const QString& instructions) {
@@ -37,7 +36,11 @@ bool RecipeRepository::updateRecipe(int id, const QString& name, const QString& 
     query.addBindValue(instructions);
     query.addBindValue(id);
 
-    return query.exec();
+    if (query.exec()) {
+        return true;
+    }
+    qCritical() << "Failed to update recipe:" << query.lastError().text();
+    return false;
 }
 
 bool RecipeRepository::deleteRecipe(int id) {

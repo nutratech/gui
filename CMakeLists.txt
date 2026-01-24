@@ -96,4 +96,5 @@ if(LINUXDEPLOY)
         COMMENT "Generating AppImage..."
         VERBATIM
     )
+    add_dependencies(appimage nutra)
 endif()

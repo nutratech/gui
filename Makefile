@@ -66,7 +66,7 @@ lint: config
 	cppcheck --enable=warning,performance,portability \
 		--language=c++ --std=c++17 \
 		--suppress=missingIncludeSystem \
-		-Dslots= -Dsignals= -Demit= \
+		-Dslots= -Dsignals= -Demit= -DQT_VERSION_CHECK\(major,minor,patch\)=0 \
 		--quiet --error-exitcode=1 \
 		$(SRC_DIRS) include tests
 	@if [ ! -f $(BUILD_DIR)/compile_commands.json ]; then \

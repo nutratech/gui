@@ -156,7 +156,7 @@ void RecipeWidget::loadRecipeDetails(int recipeId) {
     // Load ingredients
     ingredientsTable->setRowCount(0);
     auto ingredients = repository.getIngredients(recipeId);
-    ingredientsTable->setRowCount(ingredients.size());
+    ingredientsTable->setRowCount(static_cast<int>(ingredients.size()));
     for (int i = 0; i < ingredients.size(); ++i) {
         const auto& ing = ingredients[i];
         ingredientsTable->setItem(i, 0, new QTableWidgetItem(QString::number(ing.foodId)));
@@ -277,7 +277,9 @@ void RecipeWidget::onRemoveIngredient() {
     int row = ingredientsTable->currentRow();
     if (row < 0) return;
 
-    int foodId = ingredientsTable->item(row, 0)->text().toInt();
+    auto* item = ingredientsTable->item(row, 0);
+    if (item == nullptr) return;
+    int foodId = item->text().toInt();
 
     if (repository.removeIngredient(currentRecipeId, foodId)) {
         ingredientsTable->removeRow(row);
