@@ -1,8 +1,10 @@
 #ifndef DETAILSWIDGET_H
 #define DETAILSWIDGET_H
 
+#include <QCheckBox>
 #include <QLabel>
 #include <QPushButton>
+#include <QSpinBox>
 #include <QTableWidget>
 #include <QWidget>
 
@@ -21,11 +23,14 @@ signals:
 
 private slots:
     void onAddClicked();
+    void updateTable();
 
 private:
     QLabel* nameLabel;
     QTableWidget* nutrientsTable;
     QPushButton* addButton;
+    QCheckBox* scaleCheckbox;
+    QSpinBox* scaleSpinBox;
     FoodRepository repository;
 
     int currentFoodId;

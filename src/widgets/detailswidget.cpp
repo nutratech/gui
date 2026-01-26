@@ -4,6 +4,7 @@
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QProgressBar>
+#include <QSettings>
 #include <QVBoxLayout>
 
 DetailsWidget::DetailsWidget(QWidget* parent) : QWidget(parent), currentFoodId(-1) {
@@ -26,6 +27,31 @@ DetailsWidget::DetailsWidget(QWidget* parent) : QWidget(parent), currentFoodId(-
     headerLayout->addWidget(addButton);
     layout->addLayout(headerLayout);
 
+    // Scaling Controls
+    auto* scaleLayout = new QHBoxLayout();
+    scaleCheckbox = new QCheckBox("Scale to:", this);
+    scaleSpinBox = new QSpinBox(this);
+    scaleSpinBox->setRange(500, 10000);
+    scaleSpinBox->setSingleStep(50);
+    scaleSpinBox->setSuffix(" kcal");
+
+    // Load last target
+    QSettings settings("nutra", "nutra");
+    scaleSpinBox->setValue(settings.value("analysisTargetKcal", 2000).toInt());
+    scaleCheckbox->setChecked(false);  // Default off
+
+    scaleLayout->addStretch();
+    scaleLayout->addWidget(scaleCheckbox);
+    scaleLayout->addWidget(scaleSpinBox);
+    layout->addLayout(scaleLayout);
+
+    connect(scaleCheckbox, &QCheckBox::toggled, this, &DetailsWidget::updateTable);
+    connect(scaleSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](int val) {
+        QSettings settings("nutra", "nutra");
+        settings.setValue("analysisTargetKcal", val);
+        if (scaleCheckbox->isChecked()) updateTable();
+    });
+
     // Nutrients Table
     nutrientsTable = new QTableWidget(this);
     nutrientsTable->setColumnCount(3);
@@ -41,11 +67,34 @@ void DetailsWidget::loadFood(int foodId, const QString& foodName) {
     currentFoodName = foodName;
     nameLabel->setText(foodName + QString(" (ID: %1)").arg(foodId));
     addButton->setEnabled(true);
+    updateTable();
+}
+
+void DetailsWidget::updateTable() {
+    if (currentFoodId == -1) return;
 
     nutrientsTable->setRowCount(0);
 
-    std::vector<Nutrient> nutrients = repository.getFoodNutrients(foodId);
+    std::vector<Nutrient> nutrients = repository.getFoodNutrients(currentFoodId);
     auto rdas = repository.getNutrientRdas();
+
+    // Calculate Multiplier
+    double multiplier = 1.0;
+    if (scaleCheckbox->isChecked()) {
+        // Find calories (ID 208)
+        double kcalPer100g = 0;
+        for (const auto& n : nutrients) {
+            if (n.id == 208) {
+                kcalPer100g = n.amount;
+                break;
+            }
+        }
+
+        double target = scaleSpinBox->value();
+        if (kcalPer100g > 0 && target > 0) {
+            multiplier = target / kcalPer100g;
+        }
+    }
 
     // Mapping for easy lookup if needed, but vector iteration is fine
     // We want to show ALL nutrients returned for the food? Or all nutrients tracked by RDA?
@@ -62,11 +111,13 @@ void DetailsWidget::loadFood(int foodId, const QString& foodName) {
             rda = rdas[nut.id];
         }
 
+        double val = nut.amount * multiplier;
+
         // Progress Bar
         auto* bar = new QProgressBar();
         bar->setRange(0, 100);
         int pct = 0;
-        if (rda > 0) pct = static_cast<int>((nut.amount / rda) * 100.0);
+        if (rda > 0) pct = static_cast<int>((val / rda) * 100.0);
         bar->setValue(std::min(pct, 100));
         bar->setTextVisible(true);
         bar->setFormat(QString("%1%").arg(pct));
@@ -88,10 +139,9 @@ void DetailsWidget::loadFood(int foodId, const QString& foodName) {
         // Detail
         QString detail;
         if (rda > 0) {
-            detail =
-                QString("%1 / %2 %3").arg(nut.amount, 0, 'f', 1).arg(rda, 0, 'f', 1).arg(nut.unit);
+            detail = QString("%1 / %2 %3").arg(val, 0, 'f', 1).arg(rda, 0, 'f', 1).arg(nut.unit);
         } else {
-            detail = QString("%1 %2").arg(nut.amount, 0, 'f', 1).arg(nut.unit);
+            detail = QString("%1 %2").arg(val, 0, 'f', 1).arg(nut.unit);
         }
         nutrientsTable->setItem(i, 2, new QTableWidgetItem(detail));
     }
