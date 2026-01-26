@@ -19,8 +19,8 @@ file(GLOB_RECURSE CORE_SOURCES_CPP CONFIGURE_DEPENDS "src/db/*.cpp" "src/utils/*
 file(GLOB_RECURSE CORE_HEADERS CONFIGURE_DEPENDS "include/db/*.h" "include/utils/*.h")
 set(CORE_SOURCES ${CORE_SOURCES_CPP} ${CORE_HEADERS})
 
-file(GLOB_RECURSE UI_SOURCES_CPP "src/widgets/*.cpp" "src/mainwindow.cpp")
-file(GLOB_RECURSE UI_HEADERS "include/widgets/*.h" "include/mainwindow.h")
+file(GLOB_RECURSE UI_SOURCES_CPP CONFIGURE_DEPENDS "src/widgets/*.cpp" "src/mainwindow.cpp")
+file(GLOB_RECURSE UI_HEADERS CONFIGURE_DEPENDS "include/widgets/*.h" "include/mainwindow.h")
 set(UI_SOURCES ${UI_SOURCES_CPP} ${UI_HEADERS})
 
 # Versioning
