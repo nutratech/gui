@@ -15,8 +15,8 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Sql)
 
 
 # Sources
-file(GLOB_RECURSE CORE_SOURCES_CPP "src/db/*.cpp" "src/utils/*.cpp")
-file(GLOB_RECURSE CORE_HEADERS "include/db/*.h" "include/utils/*.h")
+file(GLOB_RECURSE CORE_SOURCES_CPP CONFIGURE_DEPENDS "src/db/*.cpp" "src/utils/*.cpp")
+file(GLOB_RECURSE CORE_HEADERS CONFIGURE_DEPENDS "include/db/*.h" "include/utils/*.h")
 set(CORE_SOURCES ${CORE_SOURCES_CPP} ${CORE_HEADERS})
 
 file(GLOB_RECURSE UI_SOURCES_CPP "src/widgets/*.cpp" "src/mainwindow.cpp")
