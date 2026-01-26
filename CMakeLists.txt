@@ -10,14 +10,31 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
 # Find Qt6 or Qt5
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Sql Network)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Sql Network)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Sql)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Sql)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Network)
+
+if(Qt${QT_VERSION_MAJOR}Network_FOUND)
+    message(STATUS "Qt Network module found. Enabling NLP interactions.")
+    add_compile_definitions(NUTRA_HAS_NETWORK)
+else()
+    message(WARNING "Qt Network module NOT found. NLP interactions will be disabled.")
+endif()
 
 
 # Sources
 file(GLOB_RECURSE CORE_SOURCES_CPP CONFIGURE_DEPENDS "src/db/*.cpp" "src/utils/*.cpp")
 file(GLOB_RECURSE CORE_HEADERS CONFIGURE_DEPENDS "include/db/*.h" "include/utils/*.h")
 set(CORE_SOURCES ${CORE_SOURCES_CPP} ${CORE_HEADERS})
+
+# Exclude PythonServiceManager if Network is missing
+if(NOT Qt${QT_VERSION_MAJOR}Network_FOUND)
+    list(REMOVE_ITEM CORE_SOURCES_CPP "src/utils/pythonservicemanager.cpp")
+    list(REMOVE_ITEM CORE_SOURCES "src/utils/pythonservicemanager.cpp")
+    # We might need a stub header or ifdef in the header?
+    # Actually, easier to keep the file but #ifdef the implementation content?
+    # No, removing source is cleaner but requires #ifdef in code using it.
+endif()
 
 file(GLOB_RECURSE UI_SOURCES_CPP CONFIGURE_DEPENDS "src/widgets/*.cpp" "src/mainwindow.cpp")
 file(GLOB_RECURSE UI_HEADERS CONFIGURE_DEPENDS "include/widgets/*.h" "include/mainwindow.h")
@@ -61,6 +78,9 @@ foreach(TEST_SOURCE ${TEST_SOURCES})
     add_executable(${TEST_NAME} EXCLUDE_FROM_ALL ${TEST_SOURCE} ${CORE_SOURCES})
     target_include_directories(${TEST_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)
     target_link_libraries(${TEST_NAME} PRIVATE Qt${QT_VERSION_MAJOR}::Test Qt${QT_VERSION_MAJOR}::Sql)
+    if(Qt${QT_VERSION_MAJOR}Network_FOUND)
+        target_link_libraries(${TEST_NAME} PRIVATE Qt${QT_VERSION_MAJOR}::Network)
+    endif()
 
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
     add_dependencies(build_tests ${TEST_NAME})

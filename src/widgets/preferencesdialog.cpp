@@ -1,5 +1,6 @@
 #include "widgets/preferencesdialog.h"
 
+#include <QCheckBox>
 #include <QDialogButtonBox>
 #include <QDir>
 #include <QFileInfo>
@@ -14,6 +15,7 @@
 #include <QVBoxLayout>
 
 #include "db/databasemanager.h"
+#include "utils/pythonservicemanager.h"
 #include "widgets/profilesettingswidget.h"
 #include "widgets/rdasettingswidget.h"
 
@@ -40,6 +42,10 @@ void PreferencesDialog::setupUi() {
     debounceSpin->setSingleStep(50);
     debounceSpin->setSuffix(" ms");
     generalLayout->addRow("Search Debounce:", debounceSpin);
+
+    nlpCheckBox = new QCheckBox("Enable Natural Language Parsing", this);
+    nlpCheckBox->setToolTip("Analyzes ingredient text for improved search (requires Python 3)");
+    generalLayout->addRow("NLP Service:", nlpCheckBox);
 
     tabWidget->addTab(generalWidget, "General");
 
@@ -114,12 +120,17 @@ void PreferencesDialog::setupUi() {
 void PreferencesDialog::loadGeneralSettings() {
     QSettings settings("nutra", "nutra");
     debounceSpin->setValue(settings.value("searchDebounce", 600).toInt());
+
+    bool nlpEnabled = PythonServiceManager::instance().isEnabled();
+    nlpCheckBox->setChecked(nlpEnabled);
 }
 
 void PreferencesDialog::save() {
     // Save General
     QSettings settings("nutra", "nutra");
     settings.setValue("searchDebounce", debounceSpin->value());
+
+    PythonServiceManager::instance().setEnabled(nlpCheckBox->isChecked());
 
     // Save Profile
     if (profileWidget != nullptr) profileWidget->save();

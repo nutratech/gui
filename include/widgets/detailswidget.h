@@ -39,9 +39,13 @@ private:
 
     QCheckBox* hideEmptyCheckbox;
     QToolButton* copyIdBtn;
+    QPushButton* clearButton;
 
     double calculateScaleMultiplier(const std::vector<Nutrient>& nutrients);
     void addNutrientRow(const Nutrient& nut, double multiplier, const std::map<int, double>& rdas);
+
+public slots:
+    void clear();
 };
 
 #endif  // DETAILSWIDGET_H

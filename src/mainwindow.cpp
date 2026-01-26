@@ -26,10 +26,14 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     setupUi();
     updateRecentFileActions();
 
-    // Load CSV Recipes on startup
-    RecipeRepository repo;  // Temporary instance, or use shared if managed differently.
-    // RecipeRepository uses DatabaseManager singleton so creating an instance is fine.
-    repo.loadCsvRecipes(QDir::homePath() + "/.nutra/recipes");
+    // Load CSV Recipes on startup (run once)
+    QSettings settings("nutra", "nutra");
+    if (!settings.value("recipesLoaded", false).toBool()) {
+        RecipeRepository repo;
+        // RecipeRepository uses DatabaseManager singleton so creating an instance is fine.
+        repo.loadCsvRecipes(QDir::homePath() + "/.nutra/recipes");
+        settings.setValue("recipesLoaded", true);
+    }
 }
 
 MainWindow::~MainWindow() = default;

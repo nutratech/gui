@@ -51,7 +51,7 @@ void PythonServiceManager::setEnabled(bool enabled) {
 }
 
 bool PythonServiceManager::isRunning() const {
-    return m_process && m_process->state() == QProcess::Running;
+    return m_process != nullptr && m_process->state() == QProcess::Running;
 }
 
 void PythonServiceManager::findPythonPath() {
@@ -87,7 +87,7 @@ void PythonServiceManager::startService() {
         return;
     }
 
-    if (m_process) {
+    if (m_process != nullptr) {
         m_process->deleteLater();
     }
 
@@ -141,7 +141,7 @@ void PythonServiceManager::startService() {
 }
 
 void PythonServiceManager::stopService() {
-    if (!m_process) return;
+    if (m_process == nullptr) return;
 
     if (m_process->state() == QProcess::Running) {
         m_process->terminate();

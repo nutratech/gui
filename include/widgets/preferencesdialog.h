@@ -30,6 +30,7 @@ private:
 
     // General Settings
     QSpinBox* debounceSpin;
+    class QCheckBox* nlpCheckBox;
 
     // Widgets
     ProfileSettingsWidget* profileWidget;

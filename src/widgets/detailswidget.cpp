@@ -1,10 +1,12 @@
 #include "widgets/detailswidget.h"
 
+#include <QAction>
 #include <QApplication>
 #include <QClipboard>
 #include <QDebug>
 #include <QHBoxLayout>
 #include <QHeaderView>
+#include <QMenu>
 #include <QProgressBar>
 #include <QSettings>
 #include <QToolButton>
@@ -20,7 +22,17 @@ DetailsWidget::DetailsWidget(QWidget* parent) : QWidget(parent), currentFoodId(-
     font.setPointSize(14);
     font.setBold(true);
     nameLabel->setFont(font);
+    // Context Menu
+    nameLabel->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(nameLabel, &QLabel::customContextMenuRequested, this, [this](const QPoint& pos) {
+        if (currentFoodId == -1) return;
 
+        QMenu menu(this);
+        QAction* copyAction = menu.addAction("Copy Food ID");
+        connect(copyAction, &QAction::triggered, this,
+                [this]() { QApplication::clipboard()->setText(QString::number(currentFoodId)); });
+        menu.exec(nameLabel->mapToGlobal(pos));
+    });
     addButton = new QPushButton("Add to Meal", this);
     addButton->setEnabled(false);
     connect(addButton, &QPushButton::clicked, this, &DetailsWidget::onAddClicked);
@@ -38,6 +50,11 @@ DetailsWidget::DetailsWidget(QWidget* parent) : QWidget(parent), currentFoodId(-
     headerLayout->addWidget(copyIdBtn);
 
     headerLayout->addStretch();
+    clearButton = new QPushButton("Clear", this);
+    clearButton->setVisible(false);
+    connect(clearButton, &QPushButton::clicked, this, &DetailsWidget::clear);
+
+    headerLayout->addWidget(clearButton);
     headerLayout->addWidget(addButton);
     layout->addLayout(headerLayout);
 
@@ -88,7 +105,18 @@ void DetailsWidget::loadFood(int foodId, const QString& foodName) {
     nameLabel->setText(foodName + QString(" (ID: %1)").arg(foodId));
     addButton->setEnabled(true);
     copyIdBtn->setVisible(true);
+    clearButton->setVisible(true);
     updateTable();
+}
+
+void DetailsWidget::clear() {
+    currentFoodId = -1;
+    currentFoodName.clear();
+    nameLabel->setText("No food selected");
+    addButton->setEnabled(false);
+    copyIdBtn->setVisible(false);
+    clearButton->setVisible(false);
+    nutrientsTable->setRowCount(0);
 }
 
 void DetailsWidget::updateTable() {

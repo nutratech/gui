@@ -20,10 +20,10 @@ class PythonServiceManager : public QObject {
 public:
     static PythonServiceManager& instance();
 
-    bool isEnabled() const;
+    [[nodiscard]] bool isEnabled() const;
     void setEnabled(bool enabled);
 
-    bool isRunning() const;
+    [[nodiscard]] bool isRunning() const;
 
     /**
      * @brief Parse an ingredient string using NLP.
