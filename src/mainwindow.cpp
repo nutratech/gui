@@ -98,6 +98,11 @@ void MainWindow::setupUi() {
                 // For now, simpler handling:
                 detailsWidget->loadFood(foodId, foodName);
                 tabs->setCurrentWidget(detailsWidget);
+
+                // Persist selection
+                QSettings settings("nutra", "nutra");
+                settings.setValue("lastSelectedFoodId", foodId);
+                settings.setValue("lastSelectedFoodName", foodName);
             });
 
     connect(searchWidget, &SearchWidget::addToMealRequested, this,
@@ -139,6 +144,21 @@ void MainWindow::setupUi() {
     dbStatusLabel->setFrameStyle(QFrame::Panel | QFrame::Sunken);
     statusBar()->addPermanentWidget(dbStatusLabel);
     updateStatusBar();
+
+    // Restore last selection if available
+    QSettings settings("nutra", "nutra");
+    if (settings.contains("lastSelectedFoodId") && settings.contains("lastSelectedFoodName")) {
+        int id = settings.value("lastSelectedFoodId").toInt();
+        QString name = settings.value("lastSelectedFoodName").toString();
+        // Defer slightly to ensure DB is ready if needed (though it should be open by now)
+        QTimer::singleShot(200, this, [this, id, name]() {
+            detailsWidget->loadFood(id, name);
+            // Optionally switch tab? Default is usually search or dashboard.
+            // Let's keep the user's focus where it makes sense.
+            // If they had a selection open, maybe they want to see it.
+            // tabs->setCurrentWidget(detailsWidget);
+        });
+    }
 }
 
 void MainWindow::updateStatusBar() {
@@ -214,7 +234,7 @@ void MainWindow::onRecentFileClick() {
 }
 
 void MainWindow::updateRecentFileActions() {
-    QSettings settings("NutraTech", "Nutra");
+    QSettings settings("nutra", "nutra");
 
     // Check for legacy setting if new one is empty
     if (!settings.contains("recentFilesList") && settings.contains("recentFiles")) {
@@ -288,7 +308,7 @@ void MainWindow::addToRecentFiles(const QString& path) {
     auto info = DatabaseManager::instance().getDatabaseInfo(path);
     if (!info.isValid) return;
 
-    QSettings settings("NutraTech", "Nutra");
+    QSettings settings("nutra", "nutra");
     // Read list of QVariantMaps
     QList<QVariant> files = settings.value("recentFilesList").toList();
 

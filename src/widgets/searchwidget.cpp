@@ -87,6 +87,12 @@ void SearchWidget::performSearch() {
     // Save query to history
     addToHistory(0, query);
 
+    // Organization and application name - saves to ~/.config/nutra/nutra.conf
+    QSettings settings("nutra", "nutra");
+
+    // Save persistence
+    settings.setValue("lastSearchQuery", query);
+
     QElapsedTimer timer;
     timer.start();
 
@@ -231,7 +237,7 @@ void SearchWidget::addToHistory(int foodId, const QString& foodName) {
 }
 
 void SearchWidget::loadHistory() {
-    QSettings settings("NutraTech", "Nutra");
+    QSettings settings("nutra", "nutra");
     QList<QVariant> list = settings.value("recentFoods").toList();
     recentHistory.clear();
     for (const auto& v : list) {
@@ -261,10 +267,18 @@ void SearchWidget::onCompleterActivated(const QString& text) {
 }
 
 void SearchWidget::reloadSettings() {
-    QSettings settings("NutraTech", "Nutra");
+    QSettings settings("nutra", "nutra");
     int debounce = settings.value("searchDebounce", 600).toInt();
     debounce = std::max(debounce, 250);
     searchTimer->setInterval(debounce);
+
+    // Restore last search if empty
+    if (searchInput->text().isEmpty() && settings.contains("lastSearchQuery")) {
+        QString lastQuery = settings.value("lastSearchQuery").toString();
+        searchInput->setText(lastQuery);
+        // Defer search slightly to allow UI unchecked init
+        QTimer::singleShot(100, this, &SearchWidget::performSearch);
+    }
 }
 
 bool SearchWidget::eventFilter(QObject* obj, QEvent* event) {

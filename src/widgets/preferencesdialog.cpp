@@ -112,13 +112,13 @@ void PreferencesDialog::setupUi() {
 }
 
 void PreferencesDialog::loadGeneralSettings() {
-    QSettings settings("NutraTech", "Nutra");
+    QSettings settings("nutra", "nutra");
     debounceSpin->setValue(settings.value("searchDebounce", 600).toInt());
 }
 
 void PreferencesDialog::save() {
     // Save General
-    QSettings settings("NutraTech", "Nutra");
+    QSettings settings("nutra", "nutra");
     settings.setValue("searchDebounce", debounceSpin->value());
 
     // Save Profile

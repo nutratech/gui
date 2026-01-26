@@ -13,8 +13,8 @@
 
 int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
-    QApplication::setApplicationName("Nutra");
-    QApplication::setOrganizationName("NutraTech");
+    QApplication::setOrganizationName("nutra");
+    QApplication::setApplicationName("nutra");
     QApplication::setWindowIcon(QIcon(":/resources/nutrition_icon-no_bg.png"));
 
     // Prevent multiple instances
