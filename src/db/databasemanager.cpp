@@ -156,28 +156,6 @@ void DatabaseManager::initUserDatabase() {
         }
         applySchema(query, schemaPath);
     }
-
-    // Ensure recipe tables exist
-    {
-        query.exec(
-            "CREATE TABLE IF NOT EXISTS recipe ("
-            "id integer PRIMARY KEY AUTOINCREMENT,"
-            "uuid text NOT NULL UNIQUE DEFAULT (hex(randomblob(24))),"
-            "name text NOT NULL,"
-            "instructions text,"
-            "created int DEFAULT (strftime ('%s', 'now'))"
-            ");");
-
-        query.exec(
-            "CREATE TABLE IF NOT EXISTS recipe_ingredient ("
-            "recipe_id int NOT NULL,"
-            "food_id int NOT NULL,"
-            "amount real NOT NULL,"
-            "msre_id int,"
-            "FOREIGN KEY (recipe_id) REFERENCES recipe (id) ON DELETE CASCADE,"
-            "FOREIGN KEY (msre_id) REFERENCES measure (id) ON UPDATE CASCADE ON DELETE SET NULL"
-            ");");
-    }
 }
 
 void DatabaseManager::applySchema(QSqlQuery& query, const QString& schemaPath) {
