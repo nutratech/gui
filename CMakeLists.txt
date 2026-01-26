@@ -13,9 +13,13 @@ set(CMAKE_AUTOUIC ON)
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Sql)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Sql)
 
+
+# Sources
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "include/*.h")
-set(PROJECT_SOURCES ${SOURCES} ${HEADERS} "resources.qrc")
+
+# Filter out main.cpp for the library
+list(FILTER SOURCES EXCLUDE REGEX ".*src/main\\.cpp$")
 
 # Versioning
 if(NOT NUTRA_VERSION)
@@ -34,43 +38,30 @@ if(NOT NUTRA_VERSION)
 endif()
 add_compile_definitions(NUTRA_VERSION_STRING="${NUTRA_VERSION}")
 
+# Core Library
+add_library(nutra_lib STATIC ${SOURCES} ${HEADERS} "resources.qrc")
+target_include_directories(nutra_lib PUBLIC ${CMAKE_SOURCE_DIR}/include)
+target_link_libraries(nutra_lib PUBLIC Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Sql)
 
+# Main Executable
+add_executable(nutra src/main.cpp)
+target_link_libraries(nutra PRIVATE nutra_lib)
 
-
-
-
-add_executable(nutra
-    ${PROJECT_SOURCES}
-)
-
-target_include_directories(nutra PRIVATE ${CMAKE_SOURCE_DIR}/include)
-
-target_link_libraries(nutra PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Sql)
-
+# Testing
 enable_testing()
 find_package(Qt${QT_VERSION_MAJOR}Test REQUIRED)
 
-add_executable(test_nutra EXCLUDE_FROM_ALL tests/test_foodrepository.cpp src/db/databasemanager.cpp src/db/foodrepository.cpp src/utils/string_utils.cpp)
-target_include_directories(test_nutra PRIVATE ${CMAKE_SOURCE_DIR}/include)
-target_link_libraries(test_nutra PRIVATE Qt${QT_VERSION_MAJOR}::Test Qt${QT_VERSION_MAJOR}::Sql)
+# Dynamic Test Discovery
+file(GLOB TEST_SOURCES "tests/test_*.cpp")
 
-add_test(NAME FoodRepoTest COMMAND test_nutra)
-
-file(GLOB_RECURSE TEST_DB_SOURCES
-    tests/test_databasemanager.cpp
-    tests/test_databasemanager.h
-    src/db/*.cpp
-    src/utils/*.cpp
-)
-add_executable(test_databasemanager ${TEST_DB_SOURCES})
-target_include_directories(test_databasemanager PRIVATE ${CMAKE_SOURCE_DIR}/include)
-target_link_libraries(test_databasemanager PRIVATE Qt${QT_VERSION_MAJOR}::Test Qt${QT_VERSION_MAJOR}::Sql)
-add_test(NAME DatabaseManagerTest COMMAND test_databasemanager)
-
-add_executable(test_calculations tests/test_calculations.cpp tests/test_calculations.h)
-target_include_directories(test_calculations PRIVATE ${CMAKE_SOURCE_DIR}/include)
-target_link_libraries(test_calculations PRIVATE Qt${QT_VERSION_MAJOR}::Test)
-add_test(NAME CalculationsTest COMMAND test_calculations)
+foreach(TEST_SOURCE ${TEST_SOURCES})
+    get_filename_component(TEST_NAME ${TEST_SOURCE} NAME_WE)
+    
+    add_executable(${TEST_NAME} EXCLUDE_FROM_ALL ${TEST_SOURCE})
+    target_link_libraries(${TEST_NAME} PRIVATE nutra_lib Qt${QT_VERSION_MAJOR}::Test)
+    
+    add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
+endforeach()
 
 
 include(GNUInstallDirs)

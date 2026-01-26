@@ -8,3 +8,26 @@
 # C++ stuff
 build/
 
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+CTestTestfile.cmake
+Makefile
+
+# Qt
+*_autogen/
+*.qrc.cpp
+
+# Generated binaries and libs
+*.a
+*.so
+*.dylib
+*.exe
+
+# Specific executables (if in-source build happens)
+/nutra
+/test_*
+/nutra.desktop
