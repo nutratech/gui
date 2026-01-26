@@ -133,43 +133,38 @@ std::vector<FoodItem> FoodRepository::searchFoods(const QString& query) {
         count++;
     }
 
-    // Batch fetch nutrients for these results
+    // Batch fetch nutrient counts
     if (!resultIds.empty()) {
         QSqlDatabase db = DatabaseManager::instance().database();
         QStringList idStrings;
         for (int id : resultIds) idStrings << QString::number(id);
 
         QString sql = QString(
-                          "SELECT n.food_id, n.nutr_id, n.nutr_val, d.nutr_desc, d.unit "
+                          "SELECT n.food_id, "
+                          "COUNT(n.nutr_id) as total_count, "
+                          "SUM(CASE WHEN n.nutr_id BETWEEN 501 AND 521 THEN 1 ELSE 0 END) as "
+                          "amino_count, "
+                          "SUM(CASE WHEN d.flav_class IS NOT NULL AND d.flav_class != '' THEN 1 "
+                          "ELSE 0 END) as flav_count "
                           "FROM nut_data n "
                           "JOIN nutr_def d ON n.nutr_id = d.id "
-                          "WHERE n.food_id IN (%1)")
+                          "WHERE n.food_id IN (%1) "
+                          "GROUP BY n.food_id")
                           .arg(idStrings.join(","));
 
         QSqlQuery nutQuery(sql, db);
         while (nutQuery.next()) {
             int fid = nutQuery.value(0).toInt();
-            Nutrient nut;
-            nut.id = nutQuery.value(1).toInt();
-            nut.amount = nutQuery.value(2).toDouble();
-            nut.description = nutQuery.value(3).toString();
-            nut.unit = nutQuery.value(4).toString();
-
-            if (m_rdas.count(nut.id) != 0U && m_rdas[nut.id] > 0) {
-                nut.rdaPercentage = (nut.amount / m_rdas[nut.id]) * 100.0;
-            } else {
-                nut.rdaPercentage = 0.0;
-            }
+            int total = nutQuery.value(1).toInt();
+            int amino = nutQuery.value(2).toInt();
+            int flav = nutQuery.value(3).toInt();
 
             if (idToIndex.count(fid) != 0U) {
-                results[idToIndex[fid]].nutrients.push_back(nut);
+                auto& item = results[idToIndex[fid]];
+                item.nutrientCount = total;
+                item.aminoCount = amino;
+                item.flavCount = flav;
             }
-        }
-
-        // Update counts based on actual data
-        for (auto& res : results) {
-            res.nutrientCount = static_cast<int>(res.nutrients.size());
-            // TODO: Logic for amino/flav counts if we have ranges of IDs
         }
     }
 

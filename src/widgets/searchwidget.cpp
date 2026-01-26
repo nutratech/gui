@@ -60,9 +60,9 @@ SearchWidget::SearchWidget(QWidget* parent) : QWidget(parent) {
 
     // Results table
     resultsTable = new QTableWidget(this);
-    resultsTable->setColumnCount(7);
+    resultsTable->setColumnCount(6);
     resultsTable->setHorizontalHeaderLabels(
-        {"ID", "Description", "Group", "Nutr", "Amino", "Flav", "Score"});
+        {"ID", "Description", "Group", "Nutr", "Amino", "Flav"});
 
     resultsTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
     resultsTable->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -147,7 +147,6 @@ void SearchWidget::performSearch() {
         resultsTable->setItem(i, 3, new QTableWidgetItem(QString::number(item.nutrientCount)));
         resultsTable->setItem(i, 4, new QTableWidgetItem(QString::number(item.aminoCount)));
         resultsTable->setItem(i, 5, new QTableWidgetItem(QString::number(item.flavCount)));
-        resultsTable->setItem(i, 6, new QTableWidgetItem(QString::number(item.score)));
     }
 
     emit searchStatus(

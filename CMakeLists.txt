@@ -57,6 +57,10 @@ if(NOT NUTRA_VERSION)
 endif()
 add_compile_definitions(NUTRA_VERSION_STRING="${NUTRA_VERSION}")
 
+# Copy SQL schema for tests/dev
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/lib/ntsqlite/sql)
+file(COPY "${CMAKE_SOURCE_DIR}/lib/ntsqlite/sql/tables.sql" DESTINATION "${CMAKE_BINARY_DIR}/lib/ntsqlite/sql")
+
 # Main Executable
 add_executable(nutra src/main.cpp ${CORE_SOURCES} ${UI_SOURCES} "resources.qrc")
 target_include_directories(nutra PUBLIC ${CMAKE_SOURCE_DIR}/include)
