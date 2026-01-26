@@ -12,8 +12,16 @@ private slots:
     void initTestCase() {
         // Setup temporary DB and directory
         QStandardPaths::setTestModeEnabled(true);
-        // Ensure user DB is open (in memory or temp file)
-        // DatabaseManager singleton might need configuration
+
+        // Ensure we start with a fresh database
+        // DatabaseManager uses ~/.nutra/nt.sqlite3 so we must clean it up
+        // ONLY do this in CI to avoid wiping local dev data!
+        if (!qEnvironmentVariable("CI").isEmpty()) {
+            QString dbPath = QDir::homePath() + "/.nutra/nt.sqlite3";
+            if (QFileInfo::exists(dbPath)) {
+                QFile::remove(dbPath);
+            }
+        }
     }
 
     void testLoadCsv() {
