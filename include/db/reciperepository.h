@@ -33,6 +33,8 @@ public:
     std::vector<RecipeItem> getAllRecipes();
     RecipeItem getRecipe(int id);
 
+    void loadCsvRecipes(const QString& directory);
+
     // Ingredients
     bool addIngredient(int recipeId, int foodId, double amount);
     bool removeIngredient(int recipeId, int foodId);
