@@ -172,15 +172,30 @@ void DatabaseManager::applySchema(QSqlQuery& query, const QString& schemaPath) {
     QTextStream in(&schemaFile);
     QString sql = in.readAll();
 
-    // Allow for simple splitting for now as tables.sql is simple
+    // 1. Strip comments (lines starting with --)
+    QString cleanSql;
 #if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
-    QStringList statements = sql.split(';', Qt::SkipEmptyParts);
+    QStringList lines = sql.split('\n', Qt::SkipEmptyParts);
 #else
-    QStringList statements = sql.split(';', QString::SkipEmptyParts);
+    QStringList lines = sql.split('\n', QString::SkipEmptyParts);
 #endif
+    for (const QString& line : lines) {
+        QString trimmedLine = line.trimmed();
+        if (!trimmedLine.startsWith("--")) {
+            cleanSql += line + "\n";
+        }
+    }
+
+    // 2. Split by semicolon
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+    QStringList statements = cleanSql.split(';', Qt::SkipEmptyParts);
+#else
+    QStringList statements = cleanSql.split(';', QString::SkipEmptyParts);
+#endif
+
     for (const QString& stmt : statements) {
         QString trimmed = stmt.trimmed();
-        if (!trimmed.isEmpty() && !trimmed.startsWith("--")) {
+        if (!trimmed.isEmpty()) {
             if (!query.exec(trimmed)) {
                 qWarning() << "Schema init warning:" << query.lastError().text()
                            << "\nStmt:" << trimmed;
