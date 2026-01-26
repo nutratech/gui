@@ -50,7 +50,7 @@ enable_testing()
 find_package(Qt${QT_VERSION_MAJOR}Test REQUIRED)
 
 # Dynamic Test Discovery
-file(GLOB TEST_SOURCES "tests/test_*.cpp")
+file(GLOB TEST_SOURCES CONFIGURE_DEPENDS "tests/test_*.cpp")
 
 add_custom_target(build_tests)
 
