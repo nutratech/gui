@@ -4,3 +4,6 @@
 [submodule "lib/ntsqlite"]
 	path = lib/ntsqlite
 	url = https://github.com/nutratech/nt-sqlite.git
+[submodule "lib/pylang_serv"]
+	path = lib/pylang_serv
+	url = https://git.nutra.tk/nutratech/search-server.git
