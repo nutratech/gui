@@ -10,8 +10,8 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
 # Find Qt6 or Qt5
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Sql)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Sql)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Sql Network)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Sql Network)
 
 
 # Sources
@@ -43,7 +43,7 @@ add_compile_definitions(NUTRA_VERSION_STRING="${NUTRA_VERSION}")
 # Main Executable
 add_executable(nutra src/main.cpp ${CORE_SOURCES} ${UI_SOURCES} "resources.qrc")
 target_include_directories(nutra PUBLIC ${CMAKE_SOURCE_DIR}/include)
-target_link_libraries(nutra PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Sql)
+target_link_libraries(nutra PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Sql Qt${QT_VERSION_MAJOR}::Network)
 
 # Testing
 enable_testing()
@@ -77,6 +77,15 @@ install(FILES resources/nutrition_icon-no_bg.png DESTINATION ${CMAKE_INSTALL_DAT
 
 if(NUTRA_DB_FILE AND EXISTS "${NUTRA_DB_FILE}")
     install(FILES "${NUTRA_DB_FILE}" DESTINATION share/nutra RENAME usda.sqlite3)
+endif()
+
+# Install Python NLP service (optional feature)
+if(EXISTS "${CMAKE_SOURCE_DIR}/lib/pylang_serv/pylang_serv")
+    install(DIRECTORY lib/pylang_serv/pylang_serv
+            DESTINATION share/nutra/pylang_serv
+            FILES_MATCHING PATTERN "*.py")
+    install(FILES lib/pylang_serv/pyproject.toml
+            DESTINATION share/nutra/pylang_serv)
 endif()
 
 # AppImage generation (requires linuxdeploy and linuxdeploy-plugin-qt in PATH)
