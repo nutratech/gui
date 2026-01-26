@@ -3,6 +3,7 @@
 
 #include <QDate>
 #include <QGroupBox>
+#include <QLabel>
 #include <QProgressBar>
 #include <QPushButton>
 #include <QSpinBox>
@@ -21,6 +22,10 @@ public:
 
 public slots:
     void refresh();
+    void prevDay();
+    void nextDay();
+    void setToday();
+    void onDateChanged();
 
 private:
     void setupUi();
@@ -33,6 +38,10 @@ private:
     QVBoxLayout* analysisLayout;
     QTableWidget* analysisTable;
     QSpinBox* scaleInput;
+
+    // Date Nav
+    QDate currentDate;
+    QLabel* dateLabel;
 
     MealRepository m_mealRepo;
     FoodRepository m_foodRepo;

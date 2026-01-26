@@ -9,7 +9,7 @@
 
 DailyLogWidget::DailyLogWidget(QWidget* parent) : QWidget(parent) {
     setupUi();
-    refresh();
+    setToday();
 }
 
 void DailyLogWidget::setupUi() {
@@ -19,10 +19,42 @@ void DailyLogWidget::setupUi() {
     mainLayout->addWidget(splitter);
 
     // --- Top: Log Table ---
+    // --- Top: Log Table ---
     auto* topWidget = new QWidget(this);
     auto* topLayout = new QVBoxLayout(topWidget);
     topLayout->setContentsMargins(0, 0, 0, 0);
-    topLayout->addWidget(new QLabel("Today's Food Log", this));
+
+    // Date Navigation Header
+    auto* navLayout = new QHBoxLayout();
+    auto* prevBtn = new QPushButton("<", this);
+    prevBtn->setFixedWidth(30);
+
+    dateLabel = new QLabel(this);
+    dateLabel->setAlignment(Qt::AlignCenter);
+    QFont font = dateLabel->font();
+    font.setBold(true);
+    font.setPointSize(12);
+    dateLabel->setFont(font);
+
+    auto* nextBtn = new QPushButton(">", this);
+    nextBtn->setFixedWidth(30);
+
+    auto* todayBtn = new QPushButton("Today", this);
+
+    navLayout->addWidget(prevBtn);
+    navLayout->addStretch();
+    navLayout->addWidget(dateLabel);
+    navLayout->addStretch();
+    navLayout->addWidget(nextBtn);
+    navLayout->addWidget(todayBtn);
+
+    topLayout->addLayout(navLayout);
+
+    connect(prevBtn, &QPushButton::clicked, this, &DailyLogWidget::prevDay);
+    connect(nextBtn, &QPushButton::clicked, this, &DailyLogWidget::nextDay);
+    connect(todayBtn, &QPushButton::clicked, this, &DailyLogWidget::setToday);
+
+    topLayout->addWidget(new QLabel("Food Log", this));
 
     logTable = new QTableWidget(this);
     logTable->setColumnCount(4);
@@ -74,13 +106,39 @@ void DailyLogWidget::setupUi() {
 }
 
 void DailyLogWidget::refresh() {
+    onDateChanged();
+}
+
+void DailyLogWidget::prevDay() {
+    currentDate = currentDate.addDays(-1);
+    onDateChanged();
+}
+
+void DailyLogWidget::nextDay() {
+    currentDate = currentDate.addDays(1);
+    onDateChanged();
+}
+
+void DailyLogWidget::setToday() {
+    currentDate = QDate::currentDate();
+    onDateChanged();
+}
+
+void DailyLogWidget::onDateChanged() {
+    // Update Label
+    QString text = currentDate.toString("ddd, MMM d, yyyy");
+    if (currentDate == QDate::currentDate()) {
+        text += " (Today)";
+    }
+    dateLabel->setText(text);
+
     updateTable();
     updateAnalysis();
 }
 
 void DailyLogWidget::updateAnalysis() {
     std::map<int, double> totals;  // id -> amount
-    auto logs = m_mealRepo.getDailyLogs(QDate::currentDate());
+    auto logs = m_mealRepo.getDailyLogs(currentDate);
 
     for (const auto& log : logs) {
         auto nutrients = m_foodRepo.getFoodNutrients(log.foodId);
@@ -148,8 +206,8 @@ void DailyLogWidget::updateAnalysis() {
 void DailyLogWidget::updateTable() {
     logTable->setRowCount(0);
 
-    // Get logs for today
-    auto logs = m_mealRepo.getDailyLogs(QDate::currentDate());
+    // Get logs for selected date
+    auto logs = m_mealRepo.getDailyLogs(currentDate);
 
     for (const auto& log : logs) {
         int row = logTable->rowCount();
