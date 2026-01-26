@@ -1,10 +1,13 @@
 #include "widgets/searchwidget.h"
 
+#include <QAbstractItemView>
 #include <QAction>
 #include <QDateTime>
 #include <QElapsedTimer>
+#include <QEvent>
 #include <QHBoxLayout>
 #include <QHeaderView>
+#include <QKeyEvent>
 #include <QMenu>
 #include <QMessageBox>
 #include <QPushButton>
@@ -32,6 +35,13 @@ SearchWidget::SearchWidget(QWidget* parent) : QWidget(parent) {
     historyCompleter->setCaseSensitivity(Qt::CaseInsensitive);
     historyCompleter->setCompletionMode(QCompleter::PopupCompletion);
     searchInput->setCompleter(historyCompleter);
+
+    QAbstractItemView* popup = historyCompleter->popup();
+    popup->setContextMenuPolicy(Qt::CustomContextMenu);
+    popup->installEventFilter(this);
+
+    connect(popup, &QAbstractItemView::customContextMenuRequested, this,
+            &SearchWidget::onHistoryContextMenu);
 
     connect(historyCompleter, QOverload<const QString&>::of(&QCompleter::activated), this,
             &SearchWidget::onCompleterActivated);
@@ -255,4 +265,52 @@ void SearchWidget::reloadSettings() {
     int debounce = settings.value("searchDebounce", 600).toInt();
     debounce = std::max(debounce, 250);
     searchTimer->setInterval(debounce);
+}
+
+bool SearchWidget::eventFilter(QObject* obj, QEvent* event) {
+    if (obj == historyCompleter->popup() && event->type() == QEvent::KeyPress) {
+        auto* keyEvent = static_cast<QKeyEvent*>(event);
+        if (keyEvent->key() == Qt::Key_Delete) {
+            QModelIndex index = historyCompleter->popup()->currentIndex();
+            if (index.isValid()) {
+                removeFromHistory(index.row());
+                return true;
+            }
+        }
+    }
+    return QWidget::eventFilter(obj, event);
+}
+
+void SearchWidget::onHistoryContextMenu(const QPoint& pos) {
+    QAbstractItemView* popup = historyCompleter->popup();
+    QModelIndex index = popup->indexAt(pos);
+    if (!index.isValid()) return;
+
+    QMenu menu(this);
+    QAction* deleteAction = menu.addAction("Remove from history");
+    QAction* selectedAction = menu.exec(popup->viewport()->mapToGlobal(pos));
+
+    if (selectedAction == deleteAction) {
+        removeFromHistory(index.row());
+    }
+}
+
+void SearchWidget::removeFromHistory(int index) {
+    if (index < 0 || index >= recentHistory.size()) return;
+
+    recentHistory.removeAt(index);
+
+    // Save to settings
+    QSettings settings("NutraTech", "Nutra");
+    QList<QVariant> list;
+    for (const auto& h : recentHistory) {
+        QVariantMap m;
+        m["id"] = h.id;
+        m["name"] = h.name;
+        m["timestamp"] = h.timestamp;
+        list.append(m);
+    }
+    settings.setValue("recentFoods", list);
+
+    updateCompleterModel();
 }

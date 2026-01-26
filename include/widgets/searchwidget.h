@@ -17,6 +17,7 @@ class SearchWidget : public QWidget {
 
 public:
     explicit SearchWidget(QWidget* parent = nullptr);
+    bool eventFilter(QObject* obj, QEvent* event) override;
 
     void reloadSettings();
 
@@ -29,10 +30,12 @@ private slots:
     void performSearch();
     void onRowDoubleClicked(int row, int column);
     void onCustomContextMenu(const QPoint& pos);
+    void onHistoryContextMenu(const QPoint& pos);
     void onCompleterActivated(const QString& text);
 
 private:
     void addToHistory(int foodId, const QString& foodName);
+    void removeFromHistory(int index);
     void loadHistory();
     void updateCompleterModel();
 

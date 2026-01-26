@@ -43,7 +43,7 @@ clean:
 
 .PHONY: test
 test: release
-	$(CMAKE) --build $(BUILD_DIR) --target test_nutra --config Release
+	$(CMAKE) --build $(BUILD_DIR) --target build_tests --config Release
 	cd $(BUILD_DIR) && $(CTEST) --output-on-failure -C Release
 
 .PHONY: run
@@ -61,7 +61,7 @@ format:
 lint: config
 	@echo "Linting..."
 	@# Build test target first to generate MOC files for tests
-	@$(CMAKE) --build $(BUILD_DIR) --target test_nutra --config Debug 2>/dev/null || true
+	@$(CMAKE) --build $(BUILD_DIR) --target build_tests --config Debug 2>/dev/null || true
 	@echo "Running cppcheck..."
 	cppcheck --enable=warning,performance,portability \
 		--language=c++ --std=c++17 \

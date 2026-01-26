@@ -54,6 +54,8 @@ find_package(Qt${QT_VERSION_MAJOR}Test REQUIRED)
 # Dynamic Test Discovery
 file(GLOB TEST_SOURCES "tests/test_*.cpp")
 
+add_custom_target(build_tests)
+
 foreach(TEST_SOURCE ${TEST_SOURCES})
     get_filename_component(TEST_NAME ${TEST_SOURCE} NAME_WE)
     
@@ -61,6 +63,7 @@ foreach(TEST_SOURCE ${TEST_SOURCES})
     target_link_libraries(${TEST_NAME} PRIVATE nutra_lib Qt${QT_VERSION_MAJOR}::Test)
     
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
+    add_dependencies(build_tests ${TEST_NAME})
 endforeach()
 
 
