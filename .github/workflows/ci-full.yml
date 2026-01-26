@@ -37,6 +37,4 @@ jobs:
         run: make release
 
       - name: Test
-        env:
-          QT_QPA_PLATFORM: offscreen
         run: make test

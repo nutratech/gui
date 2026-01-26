@@ -15,11 +15,13 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Sql)
 
 
 # Sources
-file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
-file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "include/*.h")
+file(GLOB_RECURSE CORE_SOURCES_CPP "src/db/*.cpp" "src/utils/*.cpp")
+file(GLOB_RECURSE CORE_HEADERS "include/db/*.h" "include/utils/*.h")
+set(CORE_SOURCES ${CORE_SOURCES_CPP} ${CORE_HEADERS})
 
-# Filter out main.cpp for the library
-list(FILTER SOURCES EXCLUDE REGEX ".*src/main\\.cpp$")
+file(GLOB_RECURSE UI_SOURCES_CPP "src/widgets/*.cpp" "src/mainwindow.cpp")
+file(GLOB_RECURSE UI_HEADERS "include/widgets/*.h" "include/mainwindow.h")
+set(UI_SOURCES ${UI_SOURCES_CPP} ${UI_HEADERS})
 
 # Versioning
 if(NOT NUTRA_VERSION)
@@ -38,14 +40,10 @@ if(NOT NUTRA_VERSION)
 endif()
 add_compile_definitions(NUTRA_VERSION_STRING="${NUTRA_VERSION}")
 
-# Core Library
-add_library(nutra_lib STATIC ${SOURCES} ${HEADERS} "resources.qrc")
-target_include_directories(nutra_lib PUBLIC ${CMAKE_SOURCE_DIR}/include)
-target_link_libraries(nutra_lib PUBLIC Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Sql)
-
 # Main Executable
-add_executable(nutra src/main.cpp)
-target_link_libraries(nutra PRIVATE nutra_lib)
+add_executable(nutra src/main.cpp ${CORE_SOURCES} ${UI_SOURCES} "resources.qrc")
+target_include_directories(nutra PUBLIC ${CMAKE_SOURCE_DIR}/include)
+target_link_libraries(nutra PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Sql)
 
 # Testing
 enable_testing()
@@ -58,10 +56,12 @@ add_custom_target(build_tests)
 
 foreach(TEST_SOURCE ${TEST_SOURCES})
     get_filename_component(TEST_NAME ${TEST_SOURCE} NAME_WE)
-    
-    add_executable(${TEST_NAME} EXCLUDE_FROM_ALL ${TEST_SOURCE})
-    target_link_libraries(${TEST_NAME} PRIVATE nutra_lib Qt${QT_VERSION_MAJOR}::Test)
-    
+
+    # Create independent test executable with only CORE sources
+    add_executable(${TEST_NAME} EXCLUDE_FROM_ALL ${TEST_SOURCE} ${CORE_SOURCES})
+    target_include_directories(${TEST_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    target_link_libraries(${TEST_NAME} PRIVATE Qt${QT_VERSION_MAJOR}::Test Qt${QT_VERSION_MAJOR}::Sql)
+
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
     add_dependencies(build_tests ${TEST_NAME})
 endforeach()

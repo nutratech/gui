@@ -186,52 +186,57 @@ void RecipeRepository::loadCsvRecipes(const QString& directory) {
     QDir dir(directory);
     if (!dir.exists()) return;
 
+    // Pre-load all recipes into a map for O(1) lookup
+    std::vector<RecipeItem> existingRecipes = getAllRecipes();
+    std::map<QString, int> recipeMap;
+    for (const auto& r : existingRecipes) {
+        recipeMap[r.name] = r.id;
+    }
+
     QStringList filters;
     filters << "*.csv";
     QFileInfoList fileList = dir.entryInfoList(filters, QDir::Files);
 
     for (const auto& fileInfo : fileList) {
-        QFile file(fileInfo.absoluteFilePath());
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) continue;
-
-        while (!file.atEnd()) {
-            QString line = file.readLine().trimmed();
-            if (line.isEmpty() || line.startsWith("#")) continue;
-
-            QStringList parts = line.split(',');
-            if (parts.size() < 4) continue;
-
-            QString recipeName = parts[0].trimmed();
-            QString instructions = parts[1].trimmed();
-            int foodId = parts[2].toInt();
-            double amount = parts[3].toDouble();
-
-            if (foodId <= 0 || amount <= 0) continue;
-
-            // Check if recipe exists or create it
-            int recipeId = -1;
-
-            // Inefficient check, but works for now.
-            // Better: Cache existing recipe names -> IDs or add getRecipeByName
-            auto existingRecipes = getAllRecipes();
-            for (const auto& r : existingRecipes) {
-                if (r.name == recipeName) {
-                    recipeId = r.id;
-                    break;
-                }
-            }
-
-            if (recipeId == -1) {
-                recipeId = createRecipe(recipeName, instructions);
-            }
-
-            if (recipeId != -1) {
-                // Check if ingredient exists?
-                // Or just try insert? database might error on duplicate PK if defined.
-                // Assuming (recipe_id, food_id) unique constraint?
-                addIngredient(recipeId, foodId, amount);
-            }
-        }
-        file.close();
+        processCsvFile(fileInfo.absoluteFilePath(), recipeMap);
     }
+}
+
+void RecipeRepository::processCsvFile(const QString& filePath, std::map<QString, int>& recipeMap) {
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) return;
+
+    while (!file.atEnd()) {
+        QString line = file.readLine().trimmed();
+        if (line.isEmpty() || line.startsWith("#")) continue;
+
+        QStringList parts = line.split(',');
+        if (parts.size() < 4) continue;
+
+        QString recipeName = parts[0].trimmed();
+        QString instructions = parts[1].trimmed();
+        int foodId = parts[2].toInt();
+        double amount = parts[3].toDouble();
+
+        if (foodId <= 0 || amount <= 0) continue;
+
+        int recipeId = getOrCreateRecipe(recipeName, instructions, recipeMap);
+        if (recipeId != -1) {
+            addIngredient(recipeId, foodId, amount);
+        }
+    }
+    file.close();
+}
+
+int RecipeRepository::getOrCreateRecipe(const QString& name, const QString& instructions,
+                                        std::map<QString, int>& recipeMap) {
+    if (recipeMap.count(name) != 0U) {
+        return recipeMap[name];
+    }
+
+    int newId = createRecipe(name, instructions);
+    if (newId != -1) {
+        recipeMap[name] = newId;
+    }
+    return newId;
 }

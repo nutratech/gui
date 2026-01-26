@@ -3,6 +3,7 @@
 
 #include <QDateTime>
 #include <QString>
+#include <map>
 #include <vector>
 
 struct RecipeItem {
@@ -40,6 +41,11 @@ public:
     bool removeIngredient(int recipeId, int foodId);
     bool updateIngredient(int recipeId, int foodId, double amount);
     std::vector<RecipeIngredient> getIngredients(int recipeId);
+
+private:
+    void processCsvFile(const QString& filePath, std::map<QString, int>& recipeMap);
+    int getOrCreateRecipe(const QString& name, const QString& instructions,
+                          std::map<QString, int>& recipeMap);
 };
 
 #endif  // RECIPEREPOSITORY_H
