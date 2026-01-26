@@ -48,8 +48,9 @@ public:
     std::map<int, double> getNutrientRdas();
     void updateRda(int nutrId, double value);
 
-    // Helper to get nutrient definition basics if needed
-    // QString getNutrientName(int nutrientId);
+    // Helper to get nutrient definition basics
+    QString getNutrientName(int nutrientId);
+    QString getNutrientUnit(int nutrientId);
 
 private:
     // Internal helper methods
@@ -60,6 +61,8 @@ private:
     // Cache stores basic food info
     std::vector<FoodItem> m_cache;
     std::map<int, double> m_rdas;
+    std::map<int, QString> m_nutrientNames;
+    std::map<int, QString> m_nutrientUnits;
 };
 
 #endif  // FOODREPOSITORY_H

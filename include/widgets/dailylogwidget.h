@@ -31,18 +31,13 @@ private:
     // Analysis UI
     QGroupBox* analysisBox;
     QVBoxLayout* analysisLayout;
-    QProgressBar* kcalBar;
-    QProgressBar* proteinBar;
-    QProgressBar* carbsBar;
-    QProgressBar* fatBar;
+    QTableWidget* analysisTable;
     QSpinBox* scaleInput;
 
     MealRepository m_mealRepo;
     FoodRepository m_foodRepo;
 
     void updateAnalysis();
-    void createProgressBar(QVBoxLayout* layout, const QString& label, QProgressBar*& bar,
-                           const QString& color);
 };
 
 #endif  // DAILYLOGWIDGET_H

@@ -36,6 +36,16 @@ void FoodRepository::ensureCacheLoaded() {
         nutrientCounts[countQuery.value(0).toInt()] = countQuery.value(1).toInt();
     }
 
+    // 3. Load Nutrient Definition Metadata
+    m_nutrientNames.clear();
+    m_nutrientUnits.clear();
+    QSqlQuery defQuery("SELECT id, nutr_desc, unit FROM nutr_def", db);
+    while (defQuery.next()) {
+        int id = defQuery.value(0).toInt();
+        m_nutrientNames[id] = defQuery.value(1).toString();
+        m_nutrientUnits[id] = defQuery.value(2).toString();
+    }
+
     while (query.next()) {
         FoodItem item;
         item.id = query.value(0).toInt();
@@ -262,4 +272,20 @@ void FoodRepository::updateRda(int nutrId, double value) {
     } else {
         qCritical() << "Failed to update RDA:" << query.lastError().text();
     }
+}
+
+QString FoodRepository::getNutrientName(int nutrientId) {
+    ensureCacheLoaded();
+    if (m_nutrientNames.count(nutrientId) != 0U) {
+        return m_nutrientNames[nutrientId];
+    }
+    return QString("Unknown Nutrient (%1)").arg(nutrientId);
+}
+
+QString FoodRepository::getNutrientUnit(int nutrientId) {
+    ensureCacheLoaded();
+    if (m_nutrientUnits.count(nutrientId) != 0U) {
+        return m_nutrientUnits[nutrientId];
+    }
+    return "?";
 }

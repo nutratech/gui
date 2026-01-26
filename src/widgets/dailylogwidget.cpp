@@ -40,12 +40,6 @@ void DailyLogWidget::setupUi() {
     auto* analysisBox = new QGroupBox("Analysis (Projected)", this);
     auto* analysisLayout = new QVBoxLayout(analysisBox);
 
-    // Analysis UI
-    kcalBar = nullptr;
-    proteinBar = nullptr;
-    carbsBar = nullptr;
-    fatBar = nullptr;
-
     // Scale Controls
     auto* scaleLayout = new QHBoxLayout();
     scaleLayout->addWidget(new QLabel("Project to Goal:", this));
@@ -56,19 +50,20 @@ void DailyLogWidget::setupUi() {
     scaleLayout->addWidget(scaleInput);
 
     scaleLayout->addWidget(new QLabel("kcal", this));
-
-    // Add spacer
     scaleLayout->addStretch();
-
     analysisLayout->addLayout(scaleLayout);
 
     connect(scaleInput, QOverload<int>::of(&QSpinBox::valueChanged), this,
             &DailyLogWidget::updateAnalysis);
 
-    createProgressBar(analysisLayout, "Calories", kcalBar, "#3498db");    // Blue
-    createProgressBar(analysisLayout, "Protein", proteinBar, "#e74c3c");  // Red
-    createProgressBar(analysisLayout, "Carbs", carbsBar, "#f1c40f");      // Yellow
-    createProgressBar(analysisLayout, "Fat", fatBar, "#2ecc71");          // Green
+    // Analysis Table
+    analysisTable = new QTableWidget(this);
+    analysisTable->setColumnCount(3);
+    analysisTable->setHorizontalHeaderLabels({"Nutrient", "Progress", "Detail"});
+    analysisTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
+    analysisTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    analysisTable->setSelectionMode(QAbstractItemView::NoSelection);
+    analysisLayout->addWidget(analysisTable);
 
     bottomLayout->addWidget(analysisBox);
     splitter->addWidget(bottomWidget);
@@ -76,21 +71,6 @@ void DailyLogWidget::setupUi() {
     // Set initial sizes
     splitter->setStretchFactor(0, 3);
     splitter->setStretchFactor(1, 2);
-}
-
-void DailyLogWidget::createProgressBar(QVBoxLayout* layout, const QString& label,
-                                       QProgressBar*& bar, const QString& color) {
-    auto* hLayout = new QHBoxLayout();
-    hLayout->addWidget(new QLabel(label + ":"));
-
-    bar = new QProgressBar();
-    bar->setRange(0, 100);
-    bar->setValue(0);
-    bar->setTextVisible(true);
-    bar->setStyleSheet(QString("QProgressBar::chunk { background-color: %1; }").arg(color));
-
-    hLayout->addWidget(bar);
-    layout->addLayout(hLayout);
 }
 
 void DailyLogWidget::refresh() {
@@ -110,59 +90,59 @@ void DailyLogWidget::updateAnalysis() {
         }
     }
 
-    // Hardcoded RDAs for now (TODO: Fetch from FoodRepository/User Profile)
-    double goalKcal = scaleInput->value();  // Projection Target
-
-    // Calculate Multiplier
+    double goalKcal = scaleInput->value();
     double currentKcal = totals[208];
     double multiplier = 1.0;
     if (currentKcal > 0 && goalKcal > 0) {
         multiplier = goalKcal / currentKcal;
     }
 
-    // Use scaling for "What If" visualization?
-    // Actually, progress bars usually show % of RDA.
-    // If we project, we want to show: "If I ate this ratio until I hit 2000kcal, I would have X
-    // protein."
+    analysisTable->setRowCount(0);
 
-    double rdaKcal = goalKcal;  // The goal IS the RDA in this context usually
-    double rdaProtein = 150;
-    double rdaCarbs = 300;
-    double rdaFat = 80;
+    // Iterate over defined RDAs from repository
+    auto rdas = m_foodRepo.getNutrientRdas();
+    for (const auto& [nutrId, rda] : rdas) {
+        if (rda <= 0) continue;
 
-    auto updateBar = [&](QProgressBar* bar, int nutrId, double rda, const QString& normalColor) {
         double val = totals[nutrId];
         double projectedVal = val * multiplier;
+        double pct = (projectedVal / rda) * 100.0;
+        QString unit = m_foodRepo.getNutrientUnit(nutrId);
+        QString name = m_foodRepo.getNutrientName(nutrId);
 
-        int pct = 0;
-        if (rda > 0) pct = static_cast<int>((projectedVal / rda) * 100.0);
+        int row = analysisTable->rowCount();
+        analysisTable->insertRow(row);
 
-        bar->setValue(std::min(pct, 100));
+        // 1. Nutrient Name
+        analysisTable->setItem(row, 0, new QTableWidgetItem(name));
 
-        // Format: "Actual (Projected) / Target"
-        QString text =
-            QString("%1 (%2) / %3 g").arg(val, 0, 'f', 0).arg(projectedVal, 0, 'f', 0).arg(rda);
-        if (nutrId == 208)
-            text = QString("%1 (%2) / %3 kcal")
-                       .arg(val, 0, 'f', 0)
-                       .arg(projectedVal, 0, 'f', 0)
-                       .arg(rda);
+        // 2. Progress Bar
+        auto* bar = new QProgressBar();
+        bar->setRange(0, 100);
+        bar->setValue(std::min(static_cast<int>(pct), 100));
+        bar->setTextVisible(true);
+        bar->setFormat(QString("%1%").arg(pct, 0, 'f', 1));
 
-        bar->setFormat(text);
+        // Coloring logic based on CLI thresholds
+        QString color = "#3498db";  // Default Blue
+        if (pct < 50)
+            color = "#f1c40f";  // Yellow (Under)
+        else if (pct > 150)
+            color = "#8e44ad";  // Purple (Over)
+        else if (pct >= 100)
+            color = "#2ecc71";  // Green (Good)
 
-        if (pct > 100) {
-            bar->setStyleSheet("QProgressBar::chunk { background-color: #8e44ad; }");
-        } else {
-            // Restore original color
-            bar->setStyleSheet(
-                QString("QProgressBar::chunk { background-color: %1; }").arg(normalColor));
-        }
-    };
+        bar->setStyleSheet(QString("QProgressBar::chunk { background-color: %1; }").arg(color));
+        analysisTable->setCellWidget(row, 1, bar);
 
-    updateBar(kcalBar, 208, rdaKcal, "#3498db");
-    updateBar(proteinBar, 203, rdaProtein, "#e74c3c");
-    updateBar(carbsBar, 205, rdaCarbs, "#f1c40f");
-    updateBar(fatBar, 204, rdaFat, "#2ecc71");
+        // 3. Detail Text
+        QString detail = QString("%1 (%2) / %3 %4")
+                             .arg(val, 0, 'f', 1)
+                             .arg(projectedVal, 0, 'f', 1)
+                             .arg(rda, 0, 'f', 1)
+                             .arg(unit);
+        analysisTable->setItem(row, 2, new QTableWidgetItem(detail));
+    }
 }
 
 void DailyLogWidget::updateTable() {
