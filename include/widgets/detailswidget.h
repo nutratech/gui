@@ -6,6 +6,7 @@
 #include <QPushButton>
 #include <QSpinBox>
 #include <QTableWidget>
+#include <QToolButton>
 #include <QWidget>
 
 #include "db/foodrepository.h"
@@ -35,6 +36,12 @@ private:
 
     int currentFoodId;
     QString currentFoodName;
+
+    QCheckBox* hideEmptyCheckbox;
+    QToolButton* copyIdBtn;
+
+    double calculateScaleMultiplier(const std::vector<Nutrient>& nutrients);
+    void addNutrientRow(const Nutrient& nut, double multiplier, const std::map<int, double>& rdas);
 };
 
 #endif  // DETAILSWIDGET_H

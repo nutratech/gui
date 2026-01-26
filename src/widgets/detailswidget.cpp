@@ -1,10 +1,13 @@
 #include "widgets/detailswidget.h"
 
+#include <QApplication>
+#include <QClipboard>
 #include <QDebug>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QProgressBar>
 #include <QSettings>
+#include <QToolButton>
 #include <QVBoxLayout>
 
 DetailsWidget::DetailsWidget(QWidget* parent) : QWidget(parent), currentFoodId(-1) {
@@ -23,6 +26,17 @@ DetailsWidget::DetailsWidget(QWidget* parent) : QWidget(parent), currentFoodId(-
     connect(addButton, &QPushButton::clicked, this, &DetailsWidget::onAddClicked);
 
     headerLayout->addWidget(nameLabel);
+
+    copyIdBtn = new QToolButton(this);
+    copyIdBtn->setText("Copy ID");
+    copyIdBtn->setVisible(false);
+    connect(copyIdBtn, &QToolButton::clicked, this, [this]() {
+        if (currentFoodId != -1) {
+            QApplication::clipboard()->setText(QString::number(currentFoodId));
+        }
+    });
+    headerLayout->addWidget(copyIdBtn);
+
     headerLayout->addStretch();
     headerLayout->addWidget(addButton);
     layout->addLayout(headerLayout);
@@ -41,6 +55,12 @@ DetailsWidget::DetailsWidget(QWidget* parent) : QWidget(parent), currentFoodId(-
     scaleCheckbox->setChecked(false);  // Default off
 
     scaleLayout->addStretch();
+
+    hideEmptyCheckbox = new QCheckBox("Hide Empty", this);
+    hideEmptyCheckbox->setChecked(false);  // Default show all
+    connect(hideEmptyCheckbox, &QCheckBox::toggled, this, &DetailsWidget::updateTable);
+    scaleLayout->addWidget(hideEmptyCheckbox);
+
     scaleLayout->addWidget(scaleCheckbox);
     scaleLayout->addWidget(scaleSpinBox);
     layout->addLayout(scaleLayout);
@@ -67,6 +87,7 @@ void DetailsWidget::loadFood(int foodId, const QString& foodName) {
     currentFoodName = foodName;
     nameLabel->setText(foodName + QString(" (ID: %1)").arg(foodId));
     addButton->setEnabled(true);
+    copyIdBtn->setVisible(true);
     updateTable();
 }
 
@@ -78,73 +99,84 @@ void DetailsWidget::updateTable() {
     std::vector<Nutrient> nutrients = repository.getFoodNutrients(currentFoodId);
     auto rdas = repository.getNutrientRdas();
 
-    // Calculate Multiplier
-    double multiplier = 1.0;
-    if (scaleCheckbox->isChecked()) {
-        // Find calories (ID 208)
-        double kcalPer100g = 0;
-        for (const auto& n : nutrients) {
-            if (n.id == 208) {
-                kcalPer100g = n.amount;
-                break;
-            }
+    double multiplier = calculateScaleMultiplier(nutrients);
+    bool hideEmpty = hideEmptyCheckbox->isChecked();
+
+    for (const auto& nut : nutrients) {
+        double multiplierVal = nut.amount * multiplier;
+
+        if (hideEmpty && multiplierVal < 0.01) {
+            continue;
         }
 
-        double target = scaleSpinBox->value();
-        if (kcalPer100g > 0 && target > 0) {
-            multiplier = target / kcalPer100g;
+        addNutrientRow(nut, multiplier, rdas);
+    }
+}
+
+double DetailsWidget::calculateScaleMultiplier(const std::vector<Nutrient>& nutrients) {
+    if (!scaleCheckbox->isChecked()) return 1.0;
+
+    // Find calories (ID 208)
+    double kcalPer100g = 0;
+    for (const auto& n : nutrients) {
+        if (n.id == 208) {
+            kcalPer100g = n.amount;
+            break;
         }
     }
 
-    // Mapping for easy lookup if needed, but vector iteration is fine
-    // We want to show ALL nutrients returned for the food? Or all nutrients tracked by RDA?
-    // The previous implementation showed all nutrients returned by getFoodNutrients.
-    // Let's stick to that, but enhance the ones that have RDAs.
-
-    nutrientsTable->setRowCount(static_cast<int>(nutrients.size()));
-    for (int i = 0; i < static_cast<int>(nutrients.size()); ++i) {
-        const auto& nut = nutrients[i];
-        nutrientsTable->setItem(i, 0, new QTableWidgetItem(nut.description));
-
-        double rda = 0;
-        if (rdas.count(nut.id) != 0U) {
-            rda = rdas[nut.id];
-        }
-
-        double val = nut.amount * multiplier;
-
-        // Progress Bar
-        auto* bar = new QProgressBar();
-        bar->setRange(0, 100);
-        int pct = 0;
-        if (rda > 0) pct = static_cast<int>((val / rda) * 100.0);
-        bar->setValue(std::min(pct, 100));
-        bar->setTextVisible(true);
-        bar->setFormat(QString("%1%").arg(pct));
-
-        // Color logic
-        QString color = "#bdc3c7";  // Grey if no RDA
-        if (rda > 0) {
-            color = "#3498db";  // Blue
-            if (pct < 50)
-                color = "#f1c40f";  // Yellow
-            else if (pct > 150)
-                color = "#8e44ad";  // Purple
-            else if (pct >= 100)
-                color = "#2ecc71";  // Green
-        }
-        bar->setStyleSheet(QString("QProgressBar::chunk { background-color: %1; }").arg(color));
-        nutrientsTable->setCellWidget(i, 1, bar);
-
-        // Detail
-        QString detail;
-        if (rda > 0) {
-            detail = QString("%1 / %2 %3").arg(val, 0, 'f', 1).arg(rda, 0, 'f', 1).arg(nut.unit);
-        } else {
-            detail = QString("%1 %2").arg(val, 0, 'f', 1).arg(nut.unit);
-        }
-        nutrientsTable->setItem(i, 2, new QTableWidgetItem(detail));
+    double target = scaleSpinBox->value();
+    if (kcalPer100g > 0 && target > 0) {
+        return target / kcalPer100g;
     }
+    return 1.0;
+}
+
+void DetailsWidget::addNutrientRow(const Nutrient& nut, double multiplier,
+                                   const std::map<int, double>& rdas) {
+    int row = nutrientsTable->rowCount();
+    nutrientsTable->insertRow(row);
+
+    nutrientsTable->setItem(row, 0, new QTableWidgetItem(nut.description));
+
+    double rda = 0;
+    if (rdas.count(nut.id) != 0U) {
+        rda = rdas.at(nut.id);
+    }
+
+    double val = nut.amount * multiplier;
+
+    // Progress Bar
+    auto* bar = new QProgressBar();
+    bar->setRange(0, 100);
+    int pct = 0;
+    if (rda > 0) pct = static_cast<int>((val / rda) * 100.0);
+    bar->setValue(std::min(pct, 100));
+    bar->setTextVisible(true);
+    bar->setFormat(QString("%1%").arg(pct));
+
+    // Color logic
+    QString color = "#bdc3c7";  // Grey if no RDA
+    if (rda > 0) {
+        color = "#3498db";  // Blue
+        if (pct < 50)
+            color = "#f1c40f";  // Yellow
+        else if (pct > 150)
+            color = "#8e44ad";  // Purple
+        else if (pct >= 100)
+            color = "#2ecc71";  // Green
+    }
+    bar->setStyleSheet(QString("QProgressBar::chunk { background-color: %1; }").arg(color));
+    nutrientsTable->setCellWidget(row, 1, bar);
+
+    // Detail
+    QString detail;
+    if (rda > 0) {
+        detail = QString("%1 / %2 %3").arg(val, 0, 'f', 1).arg(rda, 0, 'f', 1).arg(nut.unit);
+    } else {
+        detail = QString("%1 %2").arg(val, 0, 'f', 1).arg(nut.unit);
+    }
+    nutrientsTable->setItem(row, 2, new QTableWidgetItem(detail));
 }
 
 void DetailsWidget::onAddClicked() {
