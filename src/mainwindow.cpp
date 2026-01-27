@@ -201,13 +201,22 @@ void MainWindow::onOpenDatabase() {
                                      "SQLite Databases (*.sqlite3 *.db)");
 
     if (!fileName.isEmpty()) {
-        if (DatabaseManager::instance().isOpen() &&
-            DatabaseManager::instance().database().databaseName() == fileName) {
-            QMessageBox::information(this, "Already Open", "This database is already loaded.");
+        auto& dbMgr = DatabaseManager::instance();
+
+        // Check if it's the already open USDA DB
+        if (dbMgr.isOpen() && dbMgr.database().databaseName() == fileName) {
+            QMessageBox::information(this, "Already Open", "This USDA database is already loaded.");
             return;
         }
 
-        if (DatabaseManager::instance().connect(fileName)) {
+        // Check if it's the active User DB
+        if (dbMgr.userDatabase().isOpen() && dbMgr.userDatabase().databaseName() == fileName) {
+            QMessageBox::information(this, "Already Connected",
+                                     "This is your active User Database (NTDB). It is already connected.");
+            return;
+        }
+
+        if (dbMgr.connect(fileName)) {
             qDebug() << "Switched to database:" << fileName;
             addToRecentFiles(fileName);
             updateStatusBar();
@@ -225,14 +234,20 @@ void MainWindow::onRecentFileClick() {
     auto* action = qobject_cast<QAction*>(sender());
     if (action != nullptr) {
         QString fileName = action->data().toString();
+        auto& dbMgr = DatabaseManager::instance();
 
-        if (DatabaseManager::instance().isOpen() &&
-            DatabaseManager::instance().database().databaseName() == fileName) {
+        if (dbMgr.isOpen() && dbMgr.database().databaseName() == fileName) {
             QMessageBox::information(this, "Already Open", "This database is already loaded.");
             return;
         }
 
-        if (DatabaseManager::instance().connect(fileName)) {
+        if (dbMgr.userDatabase().isOpen() && dbMgr.userDatabase().databaseName() == fileName) {
+            QMessageBox::information(this, "Already Connected",
+                                     "This is your active User Database (NTDB). It is already connected.");
+            return;
+        }
+
+        if (dbMgr.connect(fileName)) {
             qDebug() << "Switched to database (recent):" << fileName;
             addToRecentFiles(fileName);
             updateStatusBar();
