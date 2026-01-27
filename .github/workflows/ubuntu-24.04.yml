@@ -26,6 +26,12 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Build NTDB
+        run: make build-db
+
+      - name: Test NTDB
+        run: make test-db
+
       - name: Build Release
         run: make release
 

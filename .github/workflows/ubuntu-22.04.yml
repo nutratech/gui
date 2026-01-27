@@ -39,6 +39,12 @@ jobs:
       - name: Clean (between runs on VPS)
         run: make clean
 
+      - name: Build NTDB
+        run: make build-db
+
+      - name: Test NTDB
+        run: make test-db
+
       - name: Build Release
         run: make release
 

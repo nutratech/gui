@@ -12,6 +12,15 @@ LINT_LOCS_CPP ?= $(shell git ls-files '*.cpp')
 LINT_LOCS_H ?= $(shell git ls-files '*.h')
 
 PYLANG_SERV_PROJECT_ROOT ?= lib/pylang_serv
+NTSQLITE_PROJECT_ROOT ?= lib/ntsqlite
+
+.PHONY: build-db
+build-db:
+	@$(MAKE) -C $(NTSQLITE_PROJECT_ROOT) build
+
+.PHONY: test-db
+test-db:
+	@$(MAKE) -C $(NTSQLITE_PROJECT_ROOT) test
 
 # Detect number of cores for parallel build
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.logicalcpu 2>/dev/null || echo 1)
