@@ -142,6 +142,7 @@ find_program(LINUXDEPLOY linuxdeploy)
 if(LINUXDEPLOY)
     add_custom_target(appimage
         COMMAND ${CMAKE_COMMAND} --install . --prefix AppDir/usr
+        COMMAND sed -i "s|^Exec=.*|Exec=nutra|" AppDir/usr/share/applications/nutra.desktop
         COMMAND ${LINUXDEPLOY} --appdir=AppDir --plugin=qt --output=appimage
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         COMMENT "Generating AppImage..."
