@@ -45,7 +45,11 @@ bool DatabaseManager::connect(const QString& path) {
         return false;
     }
 
-    m_db = QSqlDatabase::addDatabase("QSQLITE");
+    if (QSqlDatabase::contains(QSqlDatabase::defaultConnection)) {
+        m_db = QSqlDatabase::database(QSqlDatabase::defaultConnection);
+    } else {
+        m_db = QSqlDatabase::addDatabase("QSQLITE");
+    }
     m_db.setDatabaseName(path);
     m_db.setConnectOptions("QSQLITE_OPEN_READONLY");
 

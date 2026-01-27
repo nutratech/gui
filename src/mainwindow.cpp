@@ -185,10 +185,10 @@ void MainWindow::updateStatusBar() {
     }
 
     if (dbMgr.userDatabase().isOpen()) {
-        parts << "User [Connected]";
-        tooltip += QString("- User: %1\n").arg(dbMgr.userDatabase().databaseName());
+        parts << "NTDB (User) [Connected]";
+        tooltip += QString("- NTDB: %1\n").arg(dbMgr.userDatabase().databaseName());
     } else {
-        parts << "User [Disconnected]";
+        parts << "NTDB (User) [Disconnected]";
     }
 
     dbStatusLabel->setText("DB Status: " + parts.join(" | "));
