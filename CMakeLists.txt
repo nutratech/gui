@@ -115,7 +115,7 @@ endforeach()
 # Installation
 include(GNUInstallDirs)
 set(NUTRA_EXECUTABLE "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/nutra")
-configure_file(nutra.desktop.in ${CMAKE_BINARY_DIR}/nutra.desktop @ONLY)
+configure_file(resources/nutra.desktop.in ${CMAKE_BINARY_DIR}/nutra.desktop @ONLY)
 
 install(TARGETS nutra DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES ${CMAKE_BINARY_DIR}/nutra.desktop DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/applications)
