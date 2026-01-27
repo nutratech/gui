@@ -34,8 +34,14 @@ jobs:
       - name: Lint
         run: make lint
 
-      - name: Build Release
-        run: make release
+      - name: Build AppImage
+        run: make appimage
 
       - name: Test
         run: make test
+
+      - name: Upload AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: nutra-linux-appimage
+          path: build/*.AppImage
