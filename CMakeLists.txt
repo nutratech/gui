@@ -5,6 +5,16 @@ project(nutra LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# --- SECURITY FIX: Bypass compromised system symlink ---
+# We force the linker to use the known-good version of libkeyutils
+# instead of relying on the system symlink which points to the bad 1.9.2 file.
+if(EXISTS "/lib/x86_64-linux-gnu/libkeyutils.so.1.9")
+    message(STATUS "Security Bypass: Forcing linkage to explicit libkeyutils.so.1.9")
+    add_library(SystemKeyUtils SHARED IMPORTED)
+    set_target_properties(SystemKeyUtils PROPERTIES IMPORTED_LOCATION "/lib/x86_64-linux-gnu/libkeyutils.so.1.9")
+endif()
+# -------------------------------------------------------
+
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
@@ -21,26 +31,35 @@ else()
     message(WARNING "Qt Network module NOT found. NLP interactions will be disabled.")
 endif()
 
+# Explicit Sources (Replaces GLOB_RECURSE for stability)
+set(CORE_SOURCES
+    src/db/databasemanager.cpp
+    src/db/foodrepository.cpp
+    src/db/mealrepository.cpp
+    src/db/reciperepository.cpp
+    src/utils/string_utils.cpp
+)
 
-# Sources
-file(GLOB_RECURSE CORE_SOURCES_CPP CONFIGURE_DEPENDS "src/db/*.cpp" "src/utils/*.cpp")
-file(GLOB_RECURSE CORE_HEADERS CONFIGURE_DEPENDS "include/db/*.h" "include/utils/*.h")
-set(CORE_SOURCES ${CORE_SOURCES_CPP} ${CORE_HEADERS})
+set(UI_SOURCES
+    src/main.cpp
+    src/mainwindow.cpp
+    src/widgets/dailylogwidget.cpp
+    src/widgets/detailswidget.cpp
+    src/widgets/mealwidget.cpp
+    src/widgets/preferencesdialog.cpp
+    src/widgets/profilesettingswidget.cpp
+    src/widgets/rdasettingswidget.cpp
+    src/widgets/recipewidget.cpp
+    src/widgets/searchwidget.cpp
+    src/widgets/weightinputdialog.cpp
+)
 
-# Exclude PythonServiceManager if Network is missing
-if(NOT Qt${QT_VERSION_MAJOR}Network_FOUND)
-    list(REMOVE_ITEM CORE_SOURCES_CPP "src/utils/pythonservicemanager.cpp")
-    list(REMOVE_ITEM CORE_SOURCES "src/utils/pythonservicemanager.cpp")
-    # We might need a stub header or ifdef in the header?
-    # Actually, easier to keep the file but #ifdef the implementation content?
-    # No, removing source is cleaner but requires #ifdef in code using it.
+# Conditionally add PythonServiceManager
+if(Qt${QT_VERSION_MAJOR}Network_FOUND)
+    list(APPEND CORE_SOURCES src/utils/pythonservicemanager.cpp)
 endif()
 
-file(GLOB_RECURSE UI_SOURCES_CPP CONFIGURE_DEPENDS "src/widgets/*.cpp" "src/mainwindow.cpp")
-file(GLOB_RECURSE UI_HEADERS CONFIGURE_DEPENDS "include/widgets/*.h" "include/mainwindow.h")
-set(UI_SOURCES ${UI_SOURCES_CPP} ${UI_HEADERS})
-
-# Versioning
+# Versioning Logic
 if(NOT NUTRA_VERSION)
     execute_process(
         COMMAND git describe --tags --always
@@ -49,24 +68,41 @@ if(NOT NUTRA_VERSION)
         ERROR_QUIET
         OUTPUT_STRIP_TRAILING_WHITESPACE
     )
-    if(GIT_VERSION)
-        set(NUTRA_VERSION "${GIT_VERSION}")
-    else()
+    set(NUTRA_VERSION "${GIT_VERSION}")
+    if(NOT NUTRA_VERSION)
         set(NUTRA_VERSION "v0.0.0-unknown")
     endif()
 endif()
 add_compile_definitions(NUTRA_VERSION_STRING="${NUTRA_VERSION}")
 
-# Copy SQL schema for tests/dev
+# --- ASSETS: Copy SQL/SQLite files from libraries ---
+
+# 1. ntsqlite: Copy tables.sql (and any sqlite3 if present)
 file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/lib/ntsqlite/sql")
-file(COPY "${CMAKE_SOURCE_DIR}/lib/ntsqlite/sql/tables.sql" DESTINATION "${CMAKE_BINARY_DIR}/lib/ntsqlite/sql")
+file(COPY "${CMAKE_SOURCE_DIR}/lib/ntsqlite/sql/" 
+     DESTINATION "${CMAKE_BINARY_DIR}/lib/ntsqlite/sql"
+     FILES_MATCHING PATTERN "*.sql" PATTERN "*.sqlite3")
+
+# 2. usdasqlite: Copy usda.sqlite3 and schema files
+file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/lib/usdasqlite/sql")
+file(COPY "${CMAKE_SOURCE_DIR}/lib/usdasqlite/sql/" 
+     DESTINATION "${CMAKE_BINARY_DIR}/lib/usdasqlite/sql"
+     FILES_MATCHING PATTERN "*.sql" PATTERN "*.sqlite3")
+
+# ----------------------------------------------------
 
 # Main Executable
-add_executable(nutra src/main.cpp ${CORE_SOURCES} ${UI_SOURCES} "resources.qrc")
+add_executable(nutra ${CORE_SOURCES} ${UI_SOURCES} "resources.qrc")
 target_include_directories(nutra PUBLIC ${CMAKE_SOURCE_DIR}/include)
 target_link_libraries(nutra PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Sql)
+
 if(Qt${QT_VERSION_MAJOR}Network_FOUND)
     target_link_libraries(nutra PRIVATE Qt${QT_VERSION_MAJOR}::Network)
+endif()
+
+# --- SECURITY FIX LINKING ---
+if(TARGET SystemKeyUtils)
+    target_link_libraries(nutra PRIVATE SystemKeyUtils)
 endif()
 
 # Testing
@@ -93,7 +129,7 @@ foreach(TEST_SOURCE ${TEST_SOURCES})
     add_dependencies(build_tests ${TEST_NAME})
 endforeach()
 
-
+# Installation
 include(GNUInstallDirs)
 set(NUTRA_EXECUTABLE "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/nutra")
 configure_file(nutra.desktop.in ${CMAKE_BINARY_DIR}/nutra.desktop @ONLY)
