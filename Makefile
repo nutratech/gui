@@ -91,3 +91,37 @@ install: release
 		$(CMAKE) -DCMAKE_INSTALL_PREFIX=$(HOME)/.local -B $(BUILD_DIR) && \
 		$(MAKE) -C $(BUILD_DIR) install \
 	)
+
+# Version bumping
+.PHONY: version
+version:
+	@./scripts/version-bump.sh
+
+.PHONY: version-patch
+version-patch:
+	@NEW_TAG=$$(./scripts/ci-version-bump.sh patch none) && \
+		echo "Bumping to $$NEW_TAG" && \
+		git tag -a "$$NEW_TAG" -m "Release $$NEW_TAG" && \
+		echo "Created tag $$NEW_TAG. Run 'git push --tags' to publish."
+
+.PHONY: version-minor
+version-minor:
+	@NEW_TAG=$$(./scripts/version-bump.sh minor none) && \
+		echo "Bumping to $$NEW_TAG" && \
+		git tag -a "$$NEW_TAG" -m "Release $$NEW_TAG" && \
+		echo "Created tag $$NEW_TAG. Run 'git push --tags' to publish."
+
+.PHONY: version-major
+version-major:
+	@NEW_TAG=$$(./scripts/version-bump.sh major none) && \
+		echo "Bumping to $$NEW_TAG" && \
+		git tag -a "$$NEW_TAG" -m "Release $$NEW_TAG" && \
+		echo "Created tag $$NEW_TAG. Run 'git push --tags' to publish."
+
+.PHONY: version-beta
+version-beta:
+	@NEW_TAG=$$(./scripts/version-bump.sh patch beta) && \
+		echo "Bumping to $$NEW_TAG" && \
+		git tag -a "$$NEW_TAG" -m "Pre-release $$NEW_TAG" && \
+		echo "Created tag $$NEW_TAG. Run 'git push --tags' to publish."
+

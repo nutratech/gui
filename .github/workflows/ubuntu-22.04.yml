@@ -21,8 +21,6 @@ jobs:
           ls -lah /usr/lib/x86_64-linux-gnu/libkeyutils.so* || echo "Not found in /usr/lib..."
           ls -lah /lib/x86_64-linux-gnu/libkeyutils.so.1* || echo "Not found in /lib..."
           /sbin/ldconfig -p | grep libkeyutils || echo "ldconfig failed"
-          echo "Recent dpkg updates for libkeyutils:"
-          grep "libkeyutils" /var/log/dpkg.log | tail -n 20 || echo "No recent dpkg entries"
 
       # NOTE: Dependencies are already installed on the dev runner
       # - name: update apt
@@ -31,7 +29,8 @@ jobs:
       # - name: install dependencies
       #   run: |
       #     sudo apt-get install -y git cmake build-essential ccache \
-      #     qtbase5-dev libqt5sql5-sqlite libgl1-mesa-dev
+      #     qtbase5-dev libqt5sql5-sqlite libgl1-mesa-dev \
+      #     linuxdeploy linuxdeploy-plugin-qt
 
       - uses: actions/checkout@v4
         with:
@@ -40,14 +39,23 @@ jobs:
       - name: Clean (between runs on VPS)
         run: make clean
 
+      - name: Run Tests
+        run: make test
+
       - name: Build Release
         run: make release
 
-      - name: Test
-        run: make test
+      - name: Build AppImage
+        run: make appimage
 
-      - name: Upload Artifact
+      - name: Upload Binary
         uses: actions/upload-artifact@v4
         with:
           name: nutra-ubuntu-22.04
           path: build/nutra
+
+      - name: Upload AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: nutra-ubuntu-22.04-appimage
+          path: build/*.AppImage
