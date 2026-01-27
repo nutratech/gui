@@ -137,7 +137,7 @@ void PythonServiceManager::startService() {
 
     // Start the server
     m_process->setWorkingDirectory(modulePath);
-    m_process->start(m_pythonPath, {"-m", "pylang_serv.server"});
+    m_process->start(m_pythonPath, {"-m", "pylang_serv.server", "--port", QString::number(m_port)});
 }
 
 void PythonServiceManager::stopService() {

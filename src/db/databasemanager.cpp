@@ -195,7 +195,7 @@ void DatabaseManager::applySchema(QSqlQuery& query, const QString& schemaPath) {
 
     for (const QString& stmt : statements) {
         QString trimmed = stmt.trimmed();
-        if (!trimmed.isEmpty()) {
+        if (!trimmed.isEmpty() && !trimmed.startsWith("--")) {
             if (!query.exec(trimmed)) {
                 qWarning() << "Schema init warning:" << query.lastError().text()
                            << "\nStmt:" << trimmed;

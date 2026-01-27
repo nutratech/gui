@@ -58,13 +58,16 @@ endif()
 add_compile_definitions(NUTRA_VERSION_STRING="${NUTRA_VERSION}")
 
 # Copy SQL schema for tests/dev
-file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/lib/ntsqlite/sql)
+file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/lib/ntsqlite/sql")
 file(COPY "${CMAKE_SOURCE_DIR}/lib/ntsqlite/sql/tables.sql" DESTINATION "${CMAKE_BINARY_DIR}/lib/ntsqlite/sql")
 
 # Main Executable
 add_executable(nutra src/main.cpp ${CORE_SOURCES} ${UI_SOURCES} "resources.qrc")
 target_include_directories(nutra PUBLIC ${CMAKE_SOURCE_DIR}/include)
-target_link_libraries(nutra PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Sql Qt${QT_VERSION_MAJOR}::Network)
+target_link_libraries(nutra PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Sql)
+if(Qt${QT_VERSION_MAJOR}Network_FOUND)
+    target_link_libraries(nutra PRIVATE Qt${QT_VERSION_MAJOR}::Network)
+endif()
 
 # Testing
 enable_testing()
@@ -108,8 +111,10 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/lib/pylang_serv/pylang_serv")
     install(DIRECTORY lib/pylang_serv/pylang_serv
             DESTINATION share/nutra/pylang_serv
             FILES_MATCHING PATTERN "*.py")
-    install(FILES lib/pylang_serv/pyproject.toml
-            DESTINATION share/nutra/pylang_serv)
+    if(EXISTS "${CMAKE_SOURCE_DIR}/lib/pylang_serv/pyproject.toml")
+        install(FILES lib/pylang_serv/pyproject.toml
+                DESTINATION share/nutra/pylang_serv)
+    endif()
 endif()
 
 # AppImage generation (requires linuxdeploy and linuxdeploy-plugin-qt in PATH)

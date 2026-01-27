@@ -13,6 +13,11 @@ jobs:
     runs-on: [self-hosted, ubuntu-22.04]
 
     steps:
+      # Reinstall potentially corrupted library on self-hosted runner
+      - name: Fix Runner Libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install --reinstall -y libkeyutils1
       # NOTE: Dependencies are already installed on the dev runner
       # - name: update apt
       #   run: sudo apt-get update
