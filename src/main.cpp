@@ -1,10 +1,12 @@
 #include <QApplication>
+#include <QCommandLineParser>
 #include <QDebug>
 #include <QDir>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QIcon>
 #include <QLockFile>
+#include <QLoggingCategory>
 #include <QMessageBox>
 #include <QStandardPaths>
 
@@ -13,6 +15,23 @@
 
 int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
+
+    // Command line parsing
+    QCommandLineParser parser;
+    parser.setApplicationDescription("Nutra - Nutrient Coach");
+    parser.addHelpOption();
+    parser.addVersionOption();
+
+    QCommandLineOption debugOption(QStringList() << "d" << "debug", "Enable debug logging");
+    parser.addOption(debugOption);
+
+    parser.process(app);
+
+    if (parser.isSet(debugOption)) {
+        QLoggingCategory::setFilterRules("*.debug=true\n*.info=true");
+        qDebug() << "Debug logging enabled.";
+    }
+
     QApplication::setOrganizationName("nutra");
     QApplication::setApplicationName("nutra");
     QApplication::setWindowIcon(QIcon(":/resources/nutrition_icon-no_bg.png"));

@@ -17,6 +17,7 @@ class RecipeWidget : public QWidget {
 
 public:
     explicit RecipeWidget(QWidget* parent = nullptr);
+    void loadRecipes();
 
 signals:
     void recipeSelected(int recipeId);
@@ -31,7 +32,6 @@ private slots:
 
 private:
     void setupUi();
-    void loadRecipes();
     void loadRecipeDetails(int recipeId);
     void clearDetails();
 

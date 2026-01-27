@@ -235,13 +235,19 @@ void RecipeWidget::onSaveRecipe() {
 void RecipeWidget::onDeleteRecipe() {
     if (currentRecipeId == -1) return;
 
-    auto reply = QMessageBox::question(this, "Confirm Delete",
-                                       "Are you sure you want to delete this recipe?",
-                                       QMessageBox::Yes | QMessageBox::No);
+    auto reply = QMessageBox::question(
+        this, "Confirm Delete",
+        "Are you sure you want to delete this recipe?\n\n"
+        "Note: The recipe will be marked as deleted and can be recovered if needed.",
+        QMessageBox::Yes | QMessageBox::No);
     if (reply == QMessageBox::Yes) {
-        repository.deleteRecipe(currentRecipeId);
-        loadRecipes();
-        clearDetails();
+        if (repository.deleteRecipe(currentRecipeId)) {
+            loadRecipes();
+            clearDetails();
+            QMessageBox::information(
+                this, "Recipe Deleted",
+                "Recipe marked as deleted. It can be recovered from the database if needed.");
+        }
     }
 }
 

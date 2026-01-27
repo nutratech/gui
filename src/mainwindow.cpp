@@ -59,6 +59,11 @@ void MainWindow::setupUi() {
 
     for (auto& recentFileAction : recentFileActions) recentFilesMenu->addAction(recentFileAction);
 
+    // Tools Menu
+    auto* toolsMenu = menuBar()->addMenu("&Tools");
+    auto* reloadRecipesAction = toolsMenu->addAction("Reload Recipes from &CSV");
+    connect(reloadRecipesAction, &QAction::triggered, this, &MainWindow::onReloadRecipes);
+
     // Edit Menu
     QMenu* editMenu = menuBar()->addMenu("Edit");
 
@@ -211,17 +216,20 @@ void MainWindow::onOpenDatabase() {
         if (dbMgr.isOpen()) {
             QString currentUsda = QFileInfo(dbMgr.database().databaseName()).canonicalFilePath();
             if (currentUsda == canonicalFileName) {
-                QMessageBox::information(this, "Already Open", "This USDA database is already loaded.");
+                QMessageBox::information(this, "Already Open",
+                                         "This USDA database is already loaded.");
                 return;
             }
         }
 
         // Check if it's the active User DB
         if (dbMgr.userDatabase().isOpen()) {
-            QString currentUser = QFileInfo(dbMgr.userDatabase().databaseName()).canonicalFilePath();
+            QString currentUser =
+                QFileInfo(dbMgr.userDatabase().databaseName()).canonicalFilePath();
             if (currentUser == canonicalFileName) {
-                QMessageBox::information(this, "Already Connected",
-                                         "This is your active User Database (NTDB). It is already connected.");
+                QMessageBox::information(
+                    this, "Already Connected",
+                    "This is your active User Database (NTDB). It is already connected.");
                 return;
             }
         }
@@ -252,17 +260,20 @@ void MainWindow::onRecentFileClick() {
         if (dbMgr.isOpen()) {
             QString currentUsda = QFileInfo(dbMgr.database().databaseName()).canonicalFilePath();
             if (currentUsda == canonicalFileName) {
-                QMessageBox::information(this, "Already Open", "This USDA database is already loaded.");
+                QMessageBox::information(this, "Already Open",
+                                         "This USDA database is already loaded.");
                 return;
             }
         }
 
         // Check User
         if (dbMgr.userDatabase().isOpen()) {
-            QString currentUser = QFileInfo(dbMgr.userDatabase().databaseName()).canonicalFilePath();
+            QString currentUser =
+                QFileInfo(dbMgr.userDatabase().databaseName()).canonicalFilePath();
             if (currentUser == canonicalFileName) {
-                QMessageBox::information(this, "Already Connected",
-                                         "This is your active User Database (NTDB). It is already connected.");
+                QMessageBox::information(
+                    this, "Already Connected",
+                    "This is your active User Database (NTDB). It is already connected.");
                 return;
             }
         }
@@ -389,15 +400,34 @@ void MainWindow::onSettings() {
 }
 
 void MainWindow::onAbout() {
-    QMessageBox::about(this, "About Nutrient Coach",
-                       QString("<h3>Nutrient Coach %1</h3>"
-                               "<p>This application is a tool designed not as a weight-loss app "
-                               "but as a true <b>nutrition coach</b>, giving insights into what "
-                               "you're getting and what you're lacking, empowering you to make "
-                               "more informed and healthy decisions and live more of the vibrant "
-                               "life you were put here for.</p>"
-                               "<p>Homepage: <a "
-                               "href=\"https://github.com/nutratech/gui\">https://github.com/"
-                               "nutratech/gui</a></p>")
-                           .arg(NUTRA_VERSION_STRING));
+    QMessageBox::about(
+        this, "About Nutrient Coach",
+        "<h3>Nutrient Coach</h3>"
+        "<p>A true nutrition coach, giving insights into what you're getting and what you're "
+        "lacking.</p>"
+        "<p>Homepage: <a "
+        "href=\"https://github.com/nutratech/gui\">https://github.com/nutratech/gui</a></p>");
+}
+
+void MainWindow::onReloadRecipes() {
+    QString recipesPath = QDir::homePath() + "/.nutra/recipe";
+    if (!QDir(recipesPath).exists()) {
+        QMessageBox::warning(this, "Directory Not Found",
+                             "Recipe directory not found at: " + recipesPath);
+        return;
+    }
+
+    auto reply = QMessageBox::question(
+        this, "Reload Recipes",
+        "This will re-scan the recipe directory and add any new recipes found.\n\n"
+        "Do you want to continue?",
+        QMessageBox::Yes | QMessageBox::No);
+    if (reply == QMessageBox::Yes) {
+        RecipeRepository repo;
+        repo.loadCsvRecipes(recipesPath);
+        QMessageBox::information(this, "Reload Complete", "Recipe directory scan complete.");
+        if (recipeWidget) {
+            recipeWidget->loadRecipes();
+        }
+    }
 }

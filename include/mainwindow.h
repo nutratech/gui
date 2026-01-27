@@ -24,6 +24,7 @@ private slots:
     void onRecentFileClick();
     void onSettings();
     void onAbout();
+    void onReloadRecipes();
 
 private:
     void setupUi();

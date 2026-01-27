@@ -48,7 +48,7 @@ bool RecipeRepository::deleteRecipe(int id) {
     if (!db.isOpen()) return false;
 
     QSqlQuery query(db);
-    query.prepare("DELETE FROM recipe WHERE id = ?");
+    query.prepare("UPDATE recipe SET is_deleted = 1 WHERE id = ?");
     query.addBindValue(id);
     return query.exec();
 }
@@ -61,7 +61,8 @@ std::vector<RecipeItem> RecipeRepository::getAllRecipes() {
     QSqlQuery query(db);
     // TODO: Join with ingredient amounts * food nutrient values to get calories?
     // For now, simple list.
-    if (query.exec("SELECT id, uuid, name, instructions, created FROM recipe ORDER BY name ASC")) {
+    if (query.exec("SELECT id, uuid, name, instructions, created FROM recipe WHERE is_deleted = 0 "
+                   "ORDER BY name ASC")) {
         while (query.next()) {
             RecipeItem item;
             item.id = query.value(0).toInt();
@@ -84,7 +85,8 @@ RecipeItem RecipeRepository::getRecipe(int id) {
     if (!db.isOpen()) return item;
 
     QSqlQuery query(db);
-    query.prepare("SELECT id, uuid, name, instructions, created FROM recipe WHERE id = ?");
+    query.prepare(
+        "SELECT id, uuid, name, instructions, created FROM recipe WHERE id = ? AND is_deleted = 0");
     query.addBindValue(id);
     if (query.exec() && query.next()) {
         item.id = query.value(0).toInt();
