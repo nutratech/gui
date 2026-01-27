@@ -13,11 +13,17 @@ jobs:
     runs-on: [self-hosted, ubuntu-22.04]
 
     steps:
-      # Reinstall potentially corrupted library on self-hosted runner
-      - name: Fix Runner Libraries
+      - name: Debug Environment
         run: |
-          sudo apt-get update
-          sudo apt-get install --reinstall -y libkeyutils1
+          echo "User: $(whoami)"
+          echo "PWD: $(pwd)"
+          echo "CI env var: $CI"
+          ls -lah /usr/lib/x86_64-linux-gnu/libkeyutils.so* || echo "Not found in /usr/lib..."
+          ls -lah /lib/x86_64-linux-gnu/libkeyutils.so.1* || echo "Not found in /lib..."
+          /sbin/ldconfig -p | grep libkeyutils || echo "ldconfig failed"
+          echo "Recent dpkg updates for libkeyutils:"
+          grep "libkeyutils" /var/log/dpkg.log | tail -n 20 || echo "No recent dpkg entries"
+
       # NOTE: Dependencies are already installed on the dev runner
       # - name: update apt
       #   run: sudo apt-get update
