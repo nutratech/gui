@@ -4,9 +4,26 @@ CMAKE := cmake
 CTEST := ctest
 SRC_DIRS := src
 
+# Get version from git
+VERSION := $(shell git describe --tags --always 2>/dev/null || echo "v0.0.0")
+
 # Find source files for linting
 LINT_LOCS_CPP ?= $(shell git ls-files '*.cpp')
 LINT_LOCS_H ?= $(shell git ls-files '*.h')
+
+PYLANG_SERV_PROJECT_ROOT ?= lib/pylang_serv
+NTSQLITE_PROJECT_ROOT ?= lib/ntsqlite
+
+.PHONY: build-db
+build-db:
+	@$(MAKE) -C $(NTSQLITE_PROJECT_ROOT) build
+
+.PHONY: test-db
+test-db:
+	@$(MAKE) -C $(NTSQLITE_PROJECT_ROOT) test
+
+# Detect number of cores for parallel build
+NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.logicalcpu 2>/dev/null || echo 1)
 
 .PHONY: config
 config:
@@ -14,17 +31,24 @@ config:
 	$(CMAKE) \
 		-DCMAKE_BUILD_TYPE=Debug \
 		-DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+		-DNUTRA_VERSION="$(VERSION)" \
 		-B $(BUILD_DIR)
 
 .PHONY: debug
 debug: config
-	$(CMAKE) --build $(BUILD_DIR) --config Debug
+	$(CMAKE) --build $(BUILD_DIR) --config Debug --parallel $(NPROC)
 
 .PHONY: release
 release:
 	$(CMAKE) -E make_directory $(BUILD_DIR)
-	$(CMAKE) -S . -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=Release
-	$(CMAKE) --build $(BUILD_DIR) --config Release
+	$(CMAKE) -S . -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=Release -DNUTRA_VERSION="$(VERSION)"
+	$(CMAKE) --build $(BUILD_DIR) --config Release --parallel $(NPROC)
+
+.PHONY: appimage
+appimage:
+	$(CMAKE) -B build -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release
+	$(CMAKE) --build build -j$(NPROC)
+	$(CMAKE) --build build --target appimage
 
 .PHONY: clean
 clean:
@@ -33,7 +57,7 @@ clean:
 
 .PHONY: test
 test: release
-	$(CMAKE) --build $(BUILD_DIR) --target test_nutra --config Release
+	$(CMAKE) --build $(BUILD_DIR) --target build_tests --config Release
 	cd $(BUILD_DIR) && $(CTEST) --output-on-failure -C Release
 
 .PHONY: run
@@ -44,19 +68,21 @@ run: debug
 .PHONY: format
 format:
 	-prettier --write .github/
+	-shfmt -w scripts/*.sh
 	clang-format -i $(LINT_LOCS_CPP) $(LINT_LOCS_H)
+	-cd $(PYLANG_SERV_PROJECT_ROOT) && make format
 
 
 .PHONY: lint
 lint: config
 	@echo "Linting..."
 	@# Build test target first to generate MOC files for tests
-	@$(CMAKE) --build $(BUILD_DIR) --target test_nutra --config Debug 2>/dev/null || true
+	@$(CMAKE) --build $(BUILD_DIR) --target build_tests --config Debug 2>/dev/null || true
 	@echo "Running cppcheck..."
 	cppcheck --enable=warning,performance,portability \
 		--language=c++ --std=c++17 \
 		--suppress=missingIncludeSystem \
-		-Dslots= -Dsignals= -Demit= \
+		-Dslots= -Dsignals= -Demit= -DQT_VERSION_CHECK\(major,minor,patch\)=0 \
 		--quiet --error-exitcode=1 \
 		$(SRC_DIRS) include tests
 	@if [ ! -f $(BUILD_DIR)/compile_commands.json ]; then \
@@ -67,7 +93,7 @@ lint: config
 	@mkdir -p $(BUILD_DIR)/lint_tmp
 	@sed 's/-mno-direct-extern-access//g' $(BUILD_DIR)/compile_commands.json > $(BUILD_DIR)/lint_tmp/compile_commands.json
 	@echo "Running clang-tidy in parallel..."
-	@echo $(LINT_LOCS_CPP) $(LINT_LOCS_H) | xargs -n 1 -P $(shell nproc 2>/dev/null || sysctl -n hw.logicalcpu 2>/dev/null || echo 1) clang-tidy --quiet -p $(BUILD_DIR)/lint_tmp -extra-arg=-Wno-unknown-argument
+	@echo $(LINT_LOCS_CPP) $(LINT_LOCS_H) | xargs -n 1 -P $(NPROC) clang-tidy --quiet -p $(BUILD_DIR)/lint_tmp -extra-arg=-Wno-unknown-argument
 	@rm -rf $(BUILD_DIR)/lint_tmp
 
 
@@ -78,3 +104,28 @@ install: release
 		$(CMAKE) -DCMAKE_INSTALL_PREFIX=$(HOME)/.local -B $(BUILD_DIR) && \
 		$(MAKE) -C $(BUILD_DIR) install \
 	)
+
+# Version bumping
+.PHONY: version
+version:
+	@./scripts/ci-version-bump.sh
+
+.PHONY: version-patch
+version-patch:
+	@./scripts/ci-version-bump.sh patch none --tag
+	@echo "Run 'git push --tags' to publish."
+
+.PHONY: version-minor
+version-minor:
+	@./scripts/ci-version-bump.sh minor none --tag
+	@echo "Run 'git push --tags' to publish."
+
+.PHONY: version-major
+version-major:
+	@./scripts/ci-version-bump.sh major none --tag
+	@echo "Run 'git push --tags' to publish."
+
+.PHONY: version-beta
+version-beta:
+	@./scripts/ci-version-bump.sh patch beta --tag
+	@echo "Run 'git push --tags' to publish."

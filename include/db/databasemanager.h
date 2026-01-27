@@ -7,19 +7,38 @@
 
 class DatabaseManager {
 public:
-  static DatabaseManager &instance();
-  bool connect(const QString &path);
-  [[nodiscard]] bool isOpen() const;
-  [[nodiscard]] QSqlDatabase database() const;
+    static DatabaseManager& instance();
+    static constexpr int USER_SCHEMA_VERSION = 9;
+    static constexpr int USDA_SCHEMA_VERSION = 1;   // Schema version for USDA data import
+    static constexpr int APP_ID_USDA = 0x55534441;  // 'USDA' (ASCII)
+    static constexpr int APP_ID_USER = 0x4E544442;  // 'NTDB' (ASCII)
+    bool connect(const QString& path);
+    [[nodiscard]] bool isOpen() const;
+    [[nodiscard]] QSqlDatabase database() const;
+    [[nodiscard]] QSqlDatabase userDatabase() const;
+    bool isValidNutraDatabase(const QSqlDatabase& db);
 
-  DatabaseManager(const DatabaseManager &) = delete;
-  DatabaseManager &operator=(const DatabaseManager &) = delete;
+    struct DatabaseInfo {
+        bool isValid;
+        QString type;  // "USDA" or "User"
+        int version;
+    };
+
+    DatabaseInfo getDatabaseInfo(const QString& path);
+
+    DatabaseManager(const DatabaseManager&) = delete;
+    DatabaseManager& operator=(const DatabaseManager&) = delete;
 
 private:
-  DatabaseManager();
-  ~DatabaseManager();
+    DatabaseManager();
+    ~DatabaseManager();
 
-  QSqlDatabase m_db;
+    void initUserDatabase();
+    void applySchema(QSqlQuery& query, const QString& schemaPath);
+    int getSchemaVersion(const QSqlDatabase& db);
+
+    QSqlDatabase m_db;
+    QSqlDatabase m_userDb;
 };
 
-#endif // DATABASEMANAGER_H
+#endif  // DATABASEMANAGER_H

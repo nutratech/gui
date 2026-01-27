@@ -1,68 +1,115 @@
-#include "db/databasemanager.h"
-#include "mainwindow.h"
 #include <QApplication>
+#include <QCommandLineParser>
 #include <QDebug>
 #include <QDir>
+#include <QFileDialog>
 #include <QFileInfo>
 #include <QIcon>
+#include <QLockFile>
+#include <QLoggingCategory>
 #include <QMessageBox>
 #include <QStandardPaths>
 
-int main(int argc, char *argv[]) {
-  QApplication app(argc, argv);
-  QApplication::setApplicationName("Nutra");
-  QApplication::setOrganizationName("NutraTech");
-  QApplication::setWindowIcon(QIcon(":/resources/nutrition_icon-no_bg.png"));
+#include "db/databasemanager.h"
+#include "mainwindow.h"
 
-  // Connect to database
-  // Search order:
-  // 1. Environment variable NUTRA_DB_PATH
-  // 2. Local user data: ~/.local/share/nutra/usda.sqlite3
-  // 3. System install: /usr/local/share/nutra/usda.sqlite3
-  // 4. System install: /usr/share/nutra/usda.sqlite3
-  // 5. Legacy: ~/.nutra/usda.sqlite3
+int main(int argc, char* argv[]) {
+    QApplication app(argc, argv);
 
-  QStringList searchPaths;
-  QString envPath = qEnvironmentVariable("NUTRA_DB_PATH");
-  if (!envPath.isEmpty())
-    searchPaths << envPath;
+    // Command line parsing
+    QCommandLineParser parser;
+    parser.setApplicationDescription("Nutra - Nutrient Coach");
+    parser.addHelpOption();
+    parser.addVersionOption();
 
-  searchPaths << QStandardPaths::locate(QStandardPaths::AppDataLocation,
-                                        "usda.sqlite3",
-                                        QStandardPaths::LocateFile);
-  searchPaths << QDir::homePath() + "/.local/share/nutra/usda.sqlite3";
-  searchPaths << "/usr/local/share/nutra/usda.sqlite3";
-  searchPaths << "/usr/share/nutra/usda.sqlite3";
-  searchPaths << QDir::homePath() + "/.nutra/usda.sqlite3";
+    QCommandLineOption debugOption(QStringList() << "d" << "debug", "Enable debug logging");
+    parser.addOption(debugOption);
 
-  QString dbPath;
-  for (const QString &path : searchPaths) {
-    if (!path.isEmpty() && QFileInfo::exists(path)) {
-      dbPath = path;
-      break;
+    parser.process(app);
+
+    if (parser.isSet(debugOption)) {
+        QLoggingCategory::setFilterRules("*.debug=true\n*.info=true");
+        qDebug() << "Debug logging enabled.";
     }
-  }
 
-  if (dbPath.isEmpty()) {
-    // If not found, default to XDG AppData location for error message/setup
-    // But we can't create it here.
-    dbPath = QDir::homePath() + "/.nutra/usda.sqlite3"; // Fallback default
-    qWarning() << "Database not found in standard locations.";
-  }
+    QApplication::setOrganizationName("nutra");
+    QApplication::setApplicationName("nutra");
+    QApplication::setWindowIcon(QIcon(":/resources/nutrition_icon-no_bg.png"));
 
-  if (!DatabaseManager::instance().connect(dbPath)) {
-    QString errorMsg =
-        QString("Failed to connect to database at:\n%1\n\nPlease ensure the "
-                "database file exists or reinstall the application.")
-            .arg(dbPath);
-    qCritical() << errorMsg;
-    QMessageBox::critical(nullptr, "Database Error", errorMsg);
-    return 1;
-  }
-  qDebug() << "Connected to database at:" << dbPath;
+    // Prevent multiple instances
+    QString lockPath = QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation);
+    if (lockPath.isEmpty()) {
+        lockPath = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
+    }
+    lockPath += "/nutra.lock";
+    QLockFile lockFile(lockPath);
+    if (!lockFile.tryLock(100)) {
+        QMessageBox::warning(nullptr, "Nutra is already running",
+                             "Another instance of Nutra is already running.\n"
+                             "Please close it before starting a new one.");
+        return 1;
+    }
 
-  MainWindow window;
-  window.show();
+    // Connect to database
+    // Search order:
+    // 1. Environment variable NUTRA_DB_PATH
+    // 2. Local user data: ~/.local/share/nutra/usda.sqlite3
+    // 3. System install: /usr/local/share/nutra/usda.sqlite3
+    // 4. System install: /usr/share/nutra/usda.sqlite3
+    // 5. Legacy: ~/.nutra/usda.sqlite3
 
-  return QApplication::exec();
+    QStringList searchPaths;
+    QString envPath = qEnvironmentVariable("NUTRA_DB_PATH");
+    if (!envPath.isEmpty()) searchPaths << envPath;
+
+    searchPaths << QStandardPaths::locate(QStandardPaths::AppDataLocation, "usda.sqlite3",
+                                          QStandardPaths::LocateFile);
+    searchPaths << QDir::homePath() + "/.local/share/nutra/usda.sqlite3";
+    searchPaths << "/usr/local/share/nutra/usda.sqlite3";
+    searchPaths << "/usr/share/nutra/usda.sqlite3";
+    searchPaths << QDir::homePath() + "/.nutra/usda.sqlite3";
+
+    QString dbPath;
+    for (const QString& path : searchPaths) {
+        if (!path.isEmpty() && QFileInfo::exists(path)) {
+            dbPath = path;
+            break;
+        }
+    }
+
+    if (dbPath.isEmpty()) {
+        qWarning() << "Database not found in standard locations.";
+        QMessageBox::StandardButton resBtn = QMessageBox::question(
+            nullptr, "Database Not Found",
+            "The Nutrient database (usda.sqlite3) was not found.\nWould you like "
+            "to browse for it manually?",
+            QMessageBox::No | QMessageBox::Yes, QMessageBox::Yes);
+
+        if (resBtn == QMessageBox::Yes) {
+            dbPath = QFileDialog::getOpenFileName(nullptr, "Find usda.sqlite3",
+                                                  QDir::homePath() + "/.nutra",
+                                                  "SQLite Databases (*.sqlite3 *.db)");
+        }
+
+        if (dbPath.isEmpty()) {
+            return 1;  // User cancelled or still not found
+        }
+    }
+
+    if (!DatabaseManager::instance().connect(dbPath)) {
+        QString errorMsg = QString(
+                               "Failed to connect to database at:\n%1\n\nPlease ensure the "
+                               "database file exists or browse for a valid SQLite file.")
+                               .arg(dbPath);
+        qCritical() << errorMsg;
+        QMessageBox::critical(nullptr, "Database Error", errorMsg);
+        // Let's try to let the user browse one more time before giving up
+        return 1;
+    }
+    qDebug() << "Connected to database at:" << dbPath;
+
+    MainWindow window;
+    window.show();
+
+    return QApplication::exec();
 }

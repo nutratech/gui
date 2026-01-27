@@ -3,7 +3,7 @@ name: Ubuntu 22.04
 
 on:
   push:
-    branches: [main, master, dev]
+    branches: [main, master]
   pull_request:
     branches: [main, master]
 
@@ -13,6 +13,16 @@ jobs:
     runs-on: [self-hosted, ubuntu-22.04]
 
     steps:
+      # NOTE: issue resolved in CMakeLists.txt
+      # - name: Debug Environment
+      #   run: |
+      #     echo "User: $(whoami)"
+      #     echo "PWD: $(pwd)"
+      #     echo "CI env var: $CI"
+      #     ls -lah /usr/lib/x86_64-linux-gnu/libkeyutils.so* || echo "Not found in /usr/lib..."
+      #     ls -lah /lib/x86_64-linux-gnu/libkeyutils.so.1* || echo "Not found in /lib..."
+      #     /sbin/ldconfig -p | grep libkeyutils || echo "ldconfig failed"
+
       # NOTE: Dependencies are already installed on the dev runner
       # - name: update apt
       #   run: sudo apt-get update
@@ -25,6 +35,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - name: Clean (between runs on VPS)
+        run: make clean
+
+      - name: Build NTDB
+        run: make build-db
+
+      - name: Test NTDB
+        run: make test-db
 
       - name: Build Release
         run: make release

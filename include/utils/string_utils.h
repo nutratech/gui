@@ -8,12 +8,12 @@
 namespace Utils {
 
 // Calculate Levenshtein distance between two strings
-int levenshteinDistance(const QString &s1, const QString &s2);
+int levenshteinDistance(const QString& s1, const QString& s2);
 
 // Calculate a simple fuzzy match score (0-100)
 // Higher is better.
-int calculateFuzzyScore(const QString &query, const QString &target);
+int calculateFuzzyScore(const QString& query, const QString& target);
 
-} // namespace Utils
+}  // namespace Utils
 
-#endif // STRING_UTILS_H
+#endif  // STRING_UTILS_H
