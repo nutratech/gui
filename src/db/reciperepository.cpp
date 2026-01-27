@@ -179,8 +179,7 @@ std::vector<RecipeIngredient> RecipeRepository::getIngredients(int recipeId) {
     return ingredients;
 }
 
-#include <QDir>
-#include <QFile>
+#include <QDirIterator>
 
 void RecipeRepository::loadCsvRecipes(const QString& directory) {
     QDir dir(directory);
@@ -193,12 +192,9 @@ void RecipeRepository::loadCsvRecipes(const QString& directory) {
         recipeMap[r.name] = r.id;
     }
 
-    QStringList filters;
-    filters << "*.csv";
-    QFileInfoList fileList = dir.entryInfoList(filters, QDir::Files);
-
-    for (const auto& fileInfo : fileList) {
-        processCsvFile(fileInfo.absoluteFilePath(), recipeMap);
+    QDirIterator it(directory, QStringList() << "*.csv", QDir::Files, QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        processCsvFile(it.next(), recipeMap);
     }
 }
 

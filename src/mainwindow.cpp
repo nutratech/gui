@@ -26,14 +26,17 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     setupUi();
     updateRecentFileActions();
 
-    // Load CSV Recipes on startup (run once)
+    // Load CSV Recipes on startup, if they exist
     QSettings settings("nutra", "nutra");
     if (!settings.value("recipesLoaded", false).toBool()) {
-        QString recipesPath = QDir::homePath() + "/.nutra/recipes";
+        QString recipesPath = QDir::homePath() + "/.nutra/recipe";
+
         if (QDir(recipesPath).exists()) {
             RecipeRepository repo;
             repo.loadCsvRecipes(recipesPath);
             settings.setValue("recipesLoaded", true);
+        } else {
+            qWarning() << "Recipe directory does not exist:" << recipesPath;
         }
     }
 }
@@ -202,18 +205,25 @@ void MainWindow::onOpenDatabase() {
 
     if (!fileName.isEmpty()) {
         auto& dbMgr = DatabaseManager::instance();
+        QString canonicalFileName = QFileInfo(fileName).canonicalFilePath();
 
         // Check if it's the already open USDA DB
-        if (dbMgr.isOpen() && dbMgr.database().databaseName() == fileName) {
-            QMessageBox::information(this, "Already Open", "This USDA database is already loaded.");
-            return;
+        if (dbMgr.isOpen()) {
+            QString currentUsda = QFileInfo(dbMgr.database().databaseName()).canonicalFilePath();
+            if (currentUsda == canonicalFileName) {
+                QMessageBox::information(this, "Already Open", "This USDA database is already loaded.");
+                return;
+            }
         }
 
         // Check if it's the active User DB
-        if (dbMgr.userDatabase().isOpen() && dbMgr.userDatabase().databaseName() == fileName) {
-            QMessageBox::information(this, "Already Connected",
-                                     "This is your active User Database (NTDB). It is already connected.");
-            return;
+        if (dbMgr.userDatabase().isOpen()) {
+            QString currentUser = QFileInfo(dbMgr.userDatabase().databaseName()).canonicalFilePath();
+            if (currentUser == canonicalFileName) {
+                QMessageBox::information(this, "Already Connected",
+                                         "This is your active User Database (NTDB). It is already connected.");
+                return;
+            }
         }
 
         if (dbMgr.connect(fileName)) {
@@ -236,15 +246,25 @@ void MainWindow::onRecentFileClick() {
         QString fileName = action->data().toString();
         auto& dbMgr = DatabaseManager::instance();
 
-        if (dbMgr.isOpen() && dbMgr.database().databaseName() == fileName) {
-            QMessageBox::information(this, "Already Open", "This database is already loaded.");
-            return;
+        QString canonicalFileName = QFileInfo(fileName).canonicalFilePath();
+
+        // Check USDA
+        if (dbMgr.isOpen()) {
+            QString currentUsda = QFileInfo(dbMgr.database().databaseName()).canonicalFilePath();
+            if (currentUsda == canonicalFileName) {
+                QMessageBox::information(this, "Already Open", "This USDA database is already loaded.");
+                return;
+            }
         }
 
-        if (dbMgr.userDatabase().isOpen() && dbMgr.userDatabase().databaseName() == fileName) {
-            QMessageBox::information(this, "Already Connected",
-                                     "This is your active User Database (NTDB). It is already connected.");
-            return;
+        // Check User
+        if (dbMgr.userDatabase().isOpen()) {
+            QString currentUser = QFileInfo(dbMgr.userDatabase().databaseName()).canonicalFilePath();
+            if (currentUser == canonicalFileName) {
+                QMessageBox::information(this, "Already Connected",
+                                         "This is your active User Database (NTDB). It is already connected.");
+                return;
+            }
         }
 
         if (dbMgr.connect(fileName)) {

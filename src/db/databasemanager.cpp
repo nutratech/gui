@@ -90,8 +90,7 @@ DatabaseManager::DatabaseInfo DatabaseManager::getDatabaseInfo(const QString& pa
         if (db.open()) {
             QSqlQuery query(db);
 
-            // Get Version
-            info.version = instance().getSchemaVersion(db);
+            // Get Version - Removed as per instruction
 
             // Get App ID
             int appId = 0;
@@ -117,6 +116,25 @@ DatabaseManager::DatabaseInfo DatabaseManager::getDatabaseInfo(const QString& pa
                 } else if (hasLogFood) {
                     info.type = "User";
                     info.isValid = true;
+                }
+            }
+
+            // Validation / Repair (since we are sticking to v9 but adding a column)
+            // Check if 'is_deleted' exists in 'recipe' table
+            bool hasColumn = false;
+            if (query.exec("PRAGMA table_info(recipe)")) {
+                while (query.next()) {
+                    if (query.value(1).toString() == "is_deleted") {
+                        hasColumn = true;
+                        break;
+                    }
+                }
+            }
+            
+            if (!hasColumn) {
+                qInfo() << "Repairing database: Adding missing 'is_deleted' column to recipe schema.";
+                if (!query.exec("ALTER TABLE recipe ADD COLUMN is_deleted integer DEFAULT 0")) {
+                     qCritical() << "Failed to add is_deleted column:" << query.lastError().text();
                 }
             }
 
