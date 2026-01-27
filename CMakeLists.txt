@@ -31,8 +31,8 @@ endif()
 
 # --- AUTOMATIC SOURCE DISCOVERY ---
 # 'CONFIGURE_DEPENDS' ensures CMake re-runs if you add new files
-file(GLOB_RECURSE CORE_SOURCES CONFIGURE_DEPENDS "src/db/*.cpp" "src/utils/*.cpp")
-file(GLOB_RECURSE UI_SOURCES CONFIGURE_DEPENDS "src/widgets/*.cpp" "src/mainwindow.cpp" "src/main.cpp")
+file(GLOB_RECURSE CORE_SOURCES CONFIGURE_DEPENDS "src/db/*.cpp" "src/utils/*.cpp" "include/db/*.h" "include/utils/*.h")
+file(GLOB_RECURSE UI_SOURCES CONFIGURE_DEPENDS "src/widgets/*.cpp" "src/mainwindow.cpp" "src/main.cpp" "include/widgets/*.h" "include/mainwindow.h")
 
 # Conditionally remove/add PythonServiceManager based on Network module
 if(NOT Qt${QT_VERSION_MAJOR}Network_FOUND)
