@@ -26,6 +26,9 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Clean (between runs on VPS)
+        run: make clean
+
       - name: Build Release
         run: make release
 
