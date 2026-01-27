@@ -6,8 +6,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # --- SECURITY FIX: Bypass compromised system symlink ---
-# We force the linker to use the known-good version of libkeyutils
-# instead of relying on the system symlink which points to the bad 1.9.2 file.
 if(EXISTS "/lib/x86_64-linux-gnu/libkeyutils.so.1.9")
     message(STATUS "Security Bypass: Forcing linkage to explicit libkeyutils.so.1.9")
     add_library(SystemKeyUtils SHARED IMPORTED)
@@ -19,7 +17,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-# Find Qt6 or Qt5
+# Find Qt
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Sql)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Sql)
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Network)
@@ -31,32 +29,15 @@ else()
     message(WARNING "Qt Network module NOT found. NLP interactions will be disabled.")
 endif()
 
-# Explicit Sources (Replaces GLOB_RECURSE for stability)
-set(CORE_SOURCES
-    src/db/databasemanager.cpp
-    src/db/foodrepository.cpp
-    src/db/mealrepository.cpp
-    src/db/reciperepository.cpp
-    src/utils/string_utils.cpp
-)
+# --- AUTOMATIC SOURCE DISCOVERY ---
+# 'CONFIGURE_DEPENDS' ensures CMake re-runs if you add new files
+file(GLOB_RECURSE CORE_SOURCES CONFIGURE_DEPENDS "src/db/*.cpp" "src/utils/*.cpp")
+file(GLOB_RECURSE UI_SOURCES CONFIGURE_DEPENDS "src/widgets/*.cpp" "src/mainwindow.cpp" "src/main.cpp")
 
-set(UI_SOURCES
-    src/main.cpp
-    src/mainwindow.cpp
-    src/widgets/dailylogwidget.cpp
-    src/widgets/detailswidget.cpp
-    src/widgets/mealwidget.cpp
-    src/widgets/preferencesdialog.cpp
-    src/widgets/profilesettingswidget.cpp
-    src/widgets/rdasettingswidget.cpp
-    src/widgets/recipewidget.cpp
-    src/widgets/searchwidget.cpp
-    src/widgets/weightinputdialog.cpp
-)
-
-# Conditionally add PythonServiceManager
-if(Qt${QT_VERSION_MAJOR}Network_FOUND)
-    list(APPEND CORE_SOURCES src/utils/pythonservicemanager.cpp)
+# Conditionally remove/add PythonServiceManager based on Network module
+if(NOT Qt${QT_VERSION_MAJOR}Network_FOUND)
+    # Filter out the python service manager if we don't have network
+    list(FILTER CORE_SOURCES EXCLUDE REGEX "pythonservicemanager.cpp")
 endif()
 
 # Versioning Logic
@@ -77,7 +58,7 @@ add_compile_definitions(NUTRA_VERSION_STRING="${NUTRA_VERSION}")
 
 # --- ASSETS: Copy SQL/SQLite files from libraries ---
 
-# 1. ntsqlite: Copy tables.sql (and any sqlite3 if present)
+# 1. ntsqlite: Copy tables.sql
 file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/lib/ntsqlite/sql")
 file(COPY "${CMAKE_SOURCE_DIR}/lib/ntsqlite/sql/" 
      DESTINATION "${CMAKE_BINARY_DIR}/lib/ntsqlite/sql"
@@ -88,7 +69,6 @@ file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/lib/usdasqlite/sql")
 file(COPY "${CMAKE_SOURCE_DIR}/lib/usdasqlite/sql/" 
      DESTINATION "${CMAKE_BINARY_DIR}/lib/usdasqlite/sql"
      FILES_MATCHING PATTERN "*.sql" PATTERN "*.sqlite3")
-
 # ----------------------------------------------------
 
 # Main Executable
@@ -117,7 +97,6 @@ add_custom_target(build_tests)
 foreach(TEST_SOURCE ${TEST_SOURCES})
     get_filename_component(TEST_NAME ${TEST_SOURCE} NAME_WE)
 
-    # Create independent test executable with only CORE sources
     add_executable(${TEST_NAME} EXCLUDE_FROM_ALL ${TEST_SOURCE} ${CORE_SOURCES})
     target_include_directories(${TEST_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)
     target_link_libraries(${TEST_NAME} PRIVATE Qt${QT_VERSION_MAJOR}::Test Qt${QT_VERSION_MAJOR}::Sql)
@@ -142,7 +121,7 @@ if(NUTRA_DB_FILE AND EXISTS "${NUTRA_DB_FILE}")
     install(FILES "${NUTRA_DB_FILE}" DESTINATION share/nutra RENAME usda.sqlite3)
 endif()
 
-# Install Python NLP service (optional feature)
+# Install Python NLP service
 if(EXISTS "${CMAKE_SOURCE_DIR}/lib/pylang_serv/pylang_serv")
     install(DIRECTORY lib/pylang_serv/pylang_serv
             DESTINATION share/nutra/pylang_serv
@@ -153,7 +132,7 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/lib/pylang_serv/pylang_serv")
     endif()
 endif()
 
-# AppImage generation (requires linuxdeploy and linuxdeploy-plugin-qt in PATH)
+# AppImage generation
 find_program(LINUXDEPLOY linuxdeploy)
 
 if(LINUXDEPLOY)
