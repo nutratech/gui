@@ -104,6 +104,10 @@ foreach(TEST_SOURCE ${TEST_SOURCES})
         target_link_libraries(${TEST_NAME} PRIVATE Qt${QT_VERSION_MAJOR}::Network)
     endif()
 
+    if(TARGET SystemKeyUtils)
+        target_link_libraries(${TEST_NAME} PRIVATE SystemKeyUtils)
+    endif()
+
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
     add_dependencies(build_tests ${TEST_NAME})
 endforeach()
