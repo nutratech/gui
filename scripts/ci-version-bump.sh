@@ -13,8 +13,15 @@ PRE_TYPE="${2:-none}"
 DO_TAG=false
 DO_PUSH=false
 
+# If PRE_TYPE looks like a flag, treat it as one
+if [[ "$PRE_TYPE" == --* ]]; then
+	PRE_TYPE="none"
+	shift 1 2>/dev/null || true
+else
+	shift 2 2>/dev/null || true
+fi
+
 # Parse flags
-shift 2 2>/dev/null || true
 for arg in "$@"; do
 	case $arg in
 	--tag) DO_TAG=true ;;
