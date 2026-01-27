@@ -13,14 +13,15 @@ jobs:
     runs-on: [self-hosted, ubuntu-22.04]
 
     steps:
-      - name: Debug Environment
-        run: |
-          echo "User: $(whoami)"
-          echo "PWD: $(pwd)"
-          echo "CI env var: $CI"
-          ls -lah /usr/lib/x86_64-linux-gnu/libkeyutils.so* || echo "Not found in /usr/lib..."
-          ls -lah /lib/x86_64-linux-gnu/libkeyutils.so.1* || echo "Not found in /lib..."
-          /sbin/ldconfig -p | grep libkeyutils || echo "ldconfig failed"
+      # NOTE: issue resolved in CMakeLists.txt
+      # - name: Debug Environment
+      #   run: |
+      #     echo "User: $(whoami)"
+      #     echo "PWD: $(pwd)"
+      #     echo "CI env var: $CI"
+      #     ls -lah /usr/lib/x86_64-linux-gnu/libkeyutils.so* || echo "Not found in /usr/lib..."
+      #     ls -lah /lib/x86_64-linux-gnu/libkeyutils.so.1* || echo "Not found in /lib..."
+      #     /sbin/ldconfig -p | grep libkeyutils || echo "ldconfig failed"
 
       # NOTE: Dependencies are already installed on the dev runner
       # - name: update apt
@@ -29,8 +30,7 @@ jobs:
       # - name: install dependencies
       #   run: |
       #     sudo apt-get install -y git cmake build-essential ccache \
-      #     qtbase5-dev libqt5sql5-sqlite libgl1-mesa-dev \
-      #     linuxdeploy linuxdeploy-plugin-qt
+      #     qtbase5-dev libqt5sql5-sqlite libgl1-mesa-dev
 
       - uses: actions/checkout@v4
         with:
@@ -39,23 +39,14 @@ jobs:
       - name: Clean (between runs on VPS)
         run: make clean
 
-      - name: Run Tests
-        run: make test
-
       - name: Build Release
         run: make release
 
-      - name: Build AppImage
-        run: make appimage
+      - name: Test
+        run: make test
 
-      - name: Upload Binary
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: nutra-ubuntu-22.04
           path: build/nutra
-
-      - name: Upload AppImage
-        uses: actions/upload-artifact@v4
-        with:
-          name: nutra-ubuntu-22.04-appimage
-          path: build/*.AppImage

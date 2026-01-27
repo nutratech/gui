@@ -61,7 +61,7 @@ format:
 	-prettier --write .github/
 	-shfmt -w scripts/*.sh
 	clang-format -i $(LINT_LOCS_CPP) $(LINT_LOCS_H)
-	cd $(PYLANG_SERV_PROJECT_ROOT) && make format
+	-cd $(PYLANG_SERV_PROJECT_ROOT) && make format
 
 
 .PHONY: lint
