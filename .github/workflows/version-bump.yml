@@ -38,13 +38,4 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Bump Version
-        run: |
-          chmod +x ./scripts/version-bump.sh
-          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-          NEW_TAG=$(./scripts/version-bump.sh "${{ inputs.bump_type }}" "${{ inputs.pre_release_type }}")
-
-          echo "Bumping from $LATEST_TAG to $NEW_TAG"
-          echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV
-
-          git tag $NEW_TAG
-          git push origin $NEW_TAG
+        run: ./scripts/ci-version-bump.sh "${{ inputs.bump_type }}" "${{ inputs.pre_release_type }}" --push

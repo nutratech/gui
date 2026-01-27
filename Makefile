@@ -11,6 +11,8 @@ VERSION := $(shell git describe --tags --always 2>/dev/null || echo "v0.0.0")
 LINT_LOCS_CPP ?= $(shell git ls-files '*.cpp')
 LINT_LOCS_H ?= $(shell git ls-files '*.h')
 
+PYLANG_SERV_PROJECT_ROOT ?= lib/pylang_serv
+
 # Detect number of cores for parallel build
 NPROC := $(shell nproc 2>/dev/null || sysctl -n hw.logicalcpu 2>/dev/null || echo 1)
 
@@ -57,7 +59,9 @@ run: debug
 .PHONY: format
 format:
 	-prettier --write .github/
+	-shfmt -w scripts/*.sh
 	clang-format -i $(LINT_LOCS_CPP) $(LINT_LOCS_H)
+	cd $(PYLANG_SERV_PROJECT_ROOT) && make format
 
 
 .PHONY: lint
@@ -95,33 +99,24 @@ install: release
 # Version bumping
 .PHONY: version
 version:
-	@./scripts/version-bump.sh
+	@./scripts/ci-version-bump.sh
 
 .PHONY: version-patch
 version-patch:
-	@NEW_TAG=$$(./scripts/ci-version-bump.sh patch none) && \
-		echo "Bumping to $$NEW_TAG" && \
-		git tag -a "$$NEW_TAG" -m "Release $$NEW_TAG" && \
-		echo "Created tag $$NEW_TAG. Run 'git push --tags' to publish."
+	@./scripts/ci-version-bump.sh patch none --tag
+	@echo "Run 'git push --tags' to publish."
 
 .PHONY: version-minor
 version-minor:
-	@NEW_TAG=$$(./scripts/version-bump.sh minor none) && \
-		echo "Bumping to $$NEW_TAG" && \
-		git tag -a "$$NEW_TAG" -m "Release $$NEW_TAG" && \
-		echo "Created tag $$NEW_TAG. Run 'git push --tags' to publish."
+	@./scripts/ci-version-bump.sh minor none --tag
+	@echo "Run 'git push --tags' to publish."
 
 .PHONY: version-major
 version-major:
-	@NEW_TAG=$$(./scripts/version-bump.sh major none) && \
-		echo "Bumping to $$NEW_TAG" && \
-		git tag -a "$$NEW_TAG" -m "Release $$NEW_TAG" && \
-		echo "Created tag $$NEW_TAG. Run 'git push --tags' to publish."
+	@./scripts/ci-version-bump.sh major none --tag
+	@echo "Run 'git push --tags' to publish."
 
 .PHONY: version-beta
 version-beta:
-	@NEW_TAG=$$(./scripts/version-bump.sh patch beta) && \
-		echo "Bumping to $$NEW_TAG" && \
-		git tag -a "$$NEW_TAG" -m "Pre-release $$NEW_TAG" && \
-		echo "Created tag $$NEW_TAG. Run 'git push --tags' to publish."
-
+	@./scripts/ci-version-bump.sh patch beta --tag
+	@echo "Run 'git push --tags' to publish."

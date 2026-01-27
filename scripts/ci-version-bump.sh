@@ -1,15 +1,31 @@
 #!/usr/bin/env bash
 # Version bump script for semantic versioning with pre-release support
-# Usage: ./scripts/version-bump.sh [bump_type] [pre_release_type]
+# Usage: ./scripts/ci-version-bump.sh [bump_type] [pre_release_type] [--tag] [--push]
 #   bump_type: major|minor|patch (default: patch)
 #   pre_release_type: none|alpha|beta|rc (default: none)
+#   --tag: Create the git tag
+#   --push: Push the tag to origin (implies --tag)
 
 set -euo pipefail
 
 BUMP_TYPE="${1:-patch}"
 PRE_TYPE="${2:-none}"
+DO_TAG=false
+DO_PUSH=false
 
-# Get latest tag, remove 'v' prefix
+# Parse flags
+shift 2 2>/dev/null || true
+for arg in "$@"; do
+	case $arg in
+	--tag) DO_TAG=true ;;
+	--push)
+		DO_TAG=true
+		DO_PUSH=true
+		;;
+	esac
+done
+
+# Get latest tag
 LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
 VERSION=${LATEST_TAG#v}
 
@@ -19,7 +35,7 @@ PRERELEASE_PART=$(echo "$VERSION" | cut -d'-' -f2- -s)
 
 IFS='.' read -r MAJOR MINOR PATCH <<<"$BASE_VERSION"
 
-# If currently no prerelease part, simple bump logic or start new prerelease
+# Compute new version
 if [ -z "$PRERELEASE_PART" ]; then
 	if [ "$BUMP_TYPE" == "major" ]; then
 		MAJOR=$((MAJOR + 1))
@@ -38,21 +54,32 @@ if [ -z "$PRERELEASE_PART" ]; then
 		NEW_TAG="v$MAJOR.$MINOR.$PATCH"
 	fi
 else
-	# Existing prerelease (e.g., 1.0.0-beta.1)
 	CURRENT_PRE_TYPE=$(echo "$PRERELEASE_PART" | cut -d'.' -f1)
 	CURRENT_PRE_NUM=$(echo "$PRERELEASE_PART" | cut -d'.' -f2)
 
 	if [ "$PRE_TYPE" == "none" ]; then
-		# Promotion to stable: 1.0.0-beta.1 -> 1.0.0
 		NEW_TAG="v$MAJOR.$MINOR.$PATCH"
 	elif [ "$PRE_TYPE" == "$CURRENT_PRE_TYPE" ]; then
-		# Increment same prerelease type: 1.0.0-beta.1 -> 1.0.0-beta.2
 		NEW_NUM=$((CURRENT_PRE_NUM + 1))
 		NEW_TAG="v$MAJOR.$MINOR.$PATCH-$PRE_TYPE.$NEW_NUM"
 	else
-		# Switching type, restart count: beta.2 -> rc.1
 		NEW_TAG="v$MAJOR.$MINOR.$PATCH-$PRE_TYPE.1"
 	fi
 fi
 
-echo "$NEW_TAG"
+echo "Bumping from $LATEST_TAG to $NEW_TAG"
+
+if [ "$DO_TAG" = true ]; then
+	git tag -a "$NEW_TAG" -m "Release $NEW_TAG"
+	echo "Created tag $NEW_TAG"
+fi
+
+if [ "$DO_PUSH" = true ]; then
+	git push origin "$NEW_TAG"
+	echo "Pushed tag $NEW_TAG to origin"
+fi
+
+# Output just the tag for scripts that need to capture it
+if [ "$DO_TAG" = false ]; then
+	echo "$NEW_TAG"
+fi
